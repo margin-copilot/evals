@@ -92,7 +92,11 @@ class System:
                     audience=ORCHESTRATOR, azp=CLI, scp="other.scope", **claims
                 )
             case "other_issuer":
-                return LocalIssuer(OTHER_TENANT).issue(audience=ORCHESTRATOR, azp=CLI, **claims)
+                # Entra signs every tenant's tokens with the same keys; only iss and tid differ.
+                other = f"https://local-issuer.invalid/{OTHER_TENANT}/v2.0"
+                return self.issuer.issue(
+                    audience=ORCHESTRATOR, azp=CLI, iss=other, tid=OTHER_TENANT, **claims
+                )
         raise ValueError(f"unknown token variant {variant!r}")
 
     async def ask(self, case: Case, persona: Persona) -> tuple[int, dict | None]:

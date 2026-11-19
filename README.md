@@ -22,6 +22,8 @@ The harness builds the system in one process: orchestrator → A2A → data-agen
   A case that starts passing early fails CI too; promote it by finishing its milestone and bumping `CURRENT_MILESTONE`.
 - **Matching:** numbers match whole: `0%` isn't found in `30%`.
 - **Forbidden agents:** `not_agents` lists agents that must not be called.
+- **Missing fields:** a missing `agents` or `citations` field fails any case that checks it.
+- **Error reasons:** `expect.error` checks the reason on error responses.
 
 ```bash
 uv sync
@@ -45,7 +47,7 @@ uv run live/identity_hop.py
 - A locally signed token gets 401.
 - The data-agent can't be reached from the internet.
 
-CI suites on fake adapters arrive in milestone 2.
+The CI suite above covers the same paths on fake adapters.
 
 ## License
 

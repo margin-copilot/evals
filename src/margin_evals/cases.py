@@ -45,6 +45,7 @@ class Expect:
     no_agents: bool = False
     citations: tuple[str, ...] = ()
     not_citations: tuple[str, ...] = ()
+    error: str | None = None  # text the error reason must contain, for error statuses
 
 
 @dataclass(frozen=True)
@@ -106,6 +107,8 @@ def _case(raw: dict, personas: dict[str, Persona], source: str) -> Case:
         problems.append(f"token {case.token!r}")
     if expect.refusal is not None and expect.refusal not in REFUSALS:
         problems.append(f"refusal {expect.refusal!r}")
+    if expect.error is not None and expect.status < 400:
+        problems.append("expect.error needs an error status")
     if not set(expect.agents) | set(expect.not_agents) <= AGENTS:
         problems.append(f"agents {sorted((set(expect.agents) | set(expect.not_agents)) - AGENTS)}")
     # Negative checks alone pass on a system that says nothing, so a 200 case needs a positive one.
@@ -144,8 +147,9 @@ def _check_types(raw: dict, expect_raw: dict, where: str) -> None:
         problems.append("status must be an integer")
     if "no_agents" in expect_raw and not isinstance(expect_raw["no_agents"], bool):
         problems.append("no_agents must be true or false")
-    if "refusal" in expect_raw and not isinstance(expect_raw["refusal"], str):
-        problems.append("refusal must be a string")
+    for name in ("refusal", "error"):
+        if name in expect_raw and not isinstance(expect_raw[name], str):
+            problems.append(f"{name} must be a string")
     for name in LIST_FIELDS:
         value = expect_raw.get(name, [])
         if not isinstance(value, list) or not all(isinstance(v, str) and v.strip() for v in value):

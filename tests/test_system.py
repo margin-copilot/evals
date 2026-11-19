@@ -68,3 +68,13 @@ async def test_a_broken_downstream_is_a_system_fault_not_a_case_failure(monkeypa
     assert status == 502
     with pytest.raises(SystemFault):
         verdict(case, status, body)
+
+
+def test_other_tenant_token_is_signed_with_the_same_key():
+    """Real Entra signs every tenant's tokens with the same keys; only iss/tid tell them apart."""
+    system = System()
+    token = system.token(NORTH, "other_issuer")
+    public_key = system.issuer._key.public_key()
+    claims = jwt.decode(token, public_key, algorithms=["RS256"], audience=ORCHESTRATOR)
+    assert claims["tid"] != system.issuer.tenant_id
+    assert claims["iss"] != system.issuer.issuer

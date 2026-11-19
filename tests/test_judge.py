@@ -69,8 +69,11 @@ def test_no_agents_means_no_tool_calls():
     ]
 
 
-def test_missing_fields_count_as_empty():
-    assert judge(case(citations=("PP-01 §5",)), 200, None) == ["missing citations: PP-01 §5"]
+def test_missing_fields_are_reported_and_count_as_empty():
+    assert judge(case(citations=("PP-01 §5",)), 200, None) == [
+        "response has no citations field",
+        "missing citations: PP-01 §5",
+    ]
 
 
 @pytest.mark.parametrize(
@@ -118,3 +121,22 @@ def test_verdict_raises_case_failed_for_a_wrong_answer_and_passes_a_right_one():
     with pytest.raises(CaseFailed, match="answer lacks"):
         verdict(case(contains=("21.3",)), 200, {"answer": "24.2"})
     verdict(case(status=401), 401, {"error": "missing bearer token"})
+
+
+def test_a_missing_agents_field_fails_an_agent_check():
+    assert judge(
+        case(no_agents=True, refusal="out_of_scope"), 200, {"refusal": "out_of_scope"}
+    ) == ["response has no agents field"]
+
+
+def test_a_missing_citations_field_fails_a_citation_check():
+    body = {"answer": "the floor is secret", "agents": ["policy-agent"]}
+    expect = case(agents=("policy-agent",), not_citations=("PP-06 §1",))
+    assert judge(expect, 200, body) == ["response has no citations field"]
+
+
+def test_error_reason_is_checked():
+    assert judge(
+        case(status=403, error="calling app not allowed"), 403, {"error": "missing scope"}
+    ) == ["error 'missing scope', expected 'calling app not allowed'"]
+    assert judge(case(status=403, error="missing scope"), 403, {"error": "missing scope"}) == []

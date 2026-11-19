@@ -36,6 +36,9 @@ def judge(case: Case, status: int, body: dict | None) -> list[str]:
     if status != expect.status:
         return [f"status {status}, expected {expect.status}"]
     if status != 200:
+        reason = str(body.get("error", "")) if isinstance(body, dict) else ""
+        if expect.error is not None and expect.error.lower() not in reason.lower():
+            return [f"error {reason!r}, expected {expect.error!r}"]
         return []
     body = body if isinstance(body, dict) else {}
     answer = str(body.get("answer", "")).lower()
@@ -54,6 +57,10 @@ def judge(case: Case, status: int, body: dict | None) -> list[str]:
         problems.append(f"refusal {refusal!r}, expected {expect.refusal!r}")
     if expect.refusal is None and expect.contains and refusal:
         problems.append(f"unexpected refusal {refusal!r}")
+    if (expect.agents or expect.not_agents or expect.no_agents) and "agents" not in body:
+        problems.append("response has no agents field")
+    if (expect.citations or expect.not_citations) and "citations" not in body:
+        problems.append("response has no citations field")
     if missing := sorted(set(expect.agents) - agents):
         problems.append(f"agents not called: {', '.join(missing)}")
     if forbidden := sorted(set(expect.not_agents) & agents):

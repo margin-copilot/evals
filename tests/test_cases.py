@@ -103,3 +103,11 @@ def test_values_that_would_empty_a_check_are_rejected(tmp_path, old, new, messag
 def test_repeat_must_be_at_least_one(tmp_path):
     with pytest.raises(CaseError, match="repeat"):
         load_cases(write(tmp_path, case(repeat="0")))
+
+
+def test_error_is_only_for_error_statuses(tmp_path):
+    bad = case().replace(
+        'expect.contains = ["21.3"]', 'expect.contains = ["21.3"]\nexpect.error = "x"'
+    )
+    with pytest.raises(CaseError, match="error needs an error status"):
+        load_cases(write(tmp_path, bad))
