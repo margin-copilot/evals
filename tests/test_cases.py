@@ -1,6 +1,6 @@
 import pytest
 
-from margin_evals.cases import CaseError, load_cases
+from margin_evals.cases import CaseError, load_cases, load_personas
 
 PERSONAS = """
 [persona."north.mgr"]
@@ -21,6 +21,19 @@ def case(**fields):
     base.update(fields)
     lines = [f"{key} = {value}" for key, value in base.items()]
     return "[[case]]\n" + "\n".join(lines) + '\nexpect.contains = ["21.3"]\n'
+
+
+def test_project_cases_load_and_cover_the_brief():
+    cases = load_cases()
+    count = {
+        kind: sum(c.kind == kind for c in cases) for kind in ("golden", "scope", "adversarial")
+    }
+    assert count["golden"] + count["scope"] >= 40
+    assert count["adversarial"] >= 15
+
+
+def test_project_personas_match_the_test_users():
+    assert set(load_personas()) == {"north.mgr", "center.mgr", "south.mgr", "pricing.director"}
 
 
 def test_a_valid_case_loads(tmp_path):

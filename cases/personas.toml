@@ -1,0 +1,18 @@
+# Test personas, matching the Entra test users (TEST_USERS / TEST_GROUPS in infra/.env.example).
+# oid values are fake; groups use group names, which the fake adapters map. Real tokens carry IDs.
+
+[persona."north.mgr"]
+oid = "persona-north-mgr"
+groups = ["grp-pricing-all", "grp-region-north"]
+
+[persona."center.mgr"]
+oid = "persona-center-mgr"
+groups = ["grp-pricing-all", "grp-region-center"]
+
+[persona."south.mgr"]
+oid = "persona-south-mgr"
+groups = ["grp-pricing-all", "grp-region-south"]
+
+[persona."pricing.director"]
+oid = "persona-pricing-director"
+groups = ["grp-pricing-all", "grp-pricing-directors"]
