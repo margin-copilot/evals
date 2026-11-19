@@ -1,0 +1,34 @@
+[project]
+name = "margin-evals"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "data-agent",
+  "httpx==0.28.1",
+  "margin-copilot-shared",
+  "orchestrator",
+  "pyjwt[crypto]==2.15.1",
+]
+
+[tool.uv.sources]
+data-agent = { git = "https://github.com/margin-copilot/data-agent", tag = "v0.1.0" }
+margin-copilot-shared = { git = "https://github.com/margin-copilot/shared", tag = "v0.1.1" }
+orchestrator = { git = "https://github.com/margin-copilot/orchestrator", tag = "v0.1.0" }
+
+[dependency-groups]
+dev = ["pytest==9.2.0", "pytest-asyncio==1.4.1", "ruff==0.17.3"]
+
+[build-system]
+requires = ["uv_build>=0.13.6,<0.14"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
