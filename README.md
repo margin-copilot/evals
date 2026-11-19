@@ -52,3 +52,13 @@ The CI suite above covers the same paths on fake adapters.
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+`rls_check.py` (milestone 3) signs in as north.mgr, south.mgr and pricing.director and runs the same SQL against the Azure SQL database for each. It checks that:
+- each user gets only their region's rows, also through joins and in `price_history`;
+- October's dairy margins are on target;
+- no test user can read `rls.user_region`.
+
+```bash
+grep -E '^SQL_(SERVER|DATABASE)=' ../data/.env >> .env   # private values, gitignored
+uv run live/rls_check.py
+```
