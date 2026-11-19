@@ -3,7 +3,7 @@
 # dependencies = [
 #   "httpx==0.28.1",
 #   "msal==1.39.0",
-#   "margin-copilot-shared @ git+https://github.com/margin-copilot/shared@v0.1.0",
+#   "margin-copilot-shared @ git+https://github.com/margin-copilot/shared@v0.1.1",
 # ]
 # ///
 """Milestone 1 live check: identity across one A2A hop, run on the laptop (D-019).
