@@ -93,7 +93,7 @@ kind = "golden"
 milestone = 4
 persona = "north.mgr"
 question = "What is our price index for UHT milk 1 L in the North?"
-expect.contains = ["97.2"]
+expect.contains = ["97.2|97.22"]
 expect.agents = ["data-agent"]
 note = "7.00 / 7.20 x 100."
 
@@ -149,7 +149,7 @@ kind = "golden"
 milestone = 4
 persona = "center.mgr"
 question = "What price changes did the Center make in June 2026?"
-expect.contains = ["olive oil", "80.2"]
+expect.contains = ["olive oil", "80.25"]
 expect.agents = ["data-agent"]
 
 [[case]]
@@ -158,7 +158,7 @@ kind = "golden"
 milestone = 4
 persona = "north.mgr"
 question = "How deep was the yogurt 4-pack promotion in the North in October 2026, and who funded it?"
-expect.contains = ["30%", "0%|no supplier funding|not funded"]
+expect.contains = ["30%", "no supplier funding|0% supplier funding|not funded"]
 expect.agents = ["data-agent"]
 
 # --- Policy (milestone 5): cited answers from AI Search, filtered by the user's groups.
@@ -178,7 +178,7 @@ kind = "golden"
 milestone = 5
 persona = "north.mgr"
 question = "What did our dairy supplier change in October?"
-expect.contains = ["6.0%|6%", "0%"]
+expect.contains = ["6.0%|6%", "no yogurt promotion funding|31 Dec"]
 expect.citations = ["PP-05-N §2", "PP-05-N §3"]
 
 [[case]]

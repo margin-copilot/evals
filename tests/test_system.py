@@ -1,8 +1,10 @@
 import jwt
 import pytest
+from data_agent.adapters.outbound.directory import FakeDirectory
 from margin_copilot_shared.security.obo import OboFailed
 
 from margin_evals.cases import Case, Expect, Persona
+from margin_evals.judge import SystemFault, verdict
 from margin_evals.system import DATA_AGENT, DATA_AGENT_SCOPE, ORCHESTRATOR, System
 
 NORTH = Persona(name="north.mgr", oid="persona-north-mgr", groups=("grp-region-north",))
@@ -54,3 +56,15 @@ def test_local_obo_refuses_unknown_scopes_and_bad_tokens():
         system.obo.exchange(system.token(NORTH, "valid"), ["api://other/access_as_user"])
     with pytest.raises(OboFailed, match="invalid_grant"):
         system.obo.exchange(system.token(NORTH, "expired"), [DATA_AGENT_SCOPE])
+
+
+async def test_a_broken_downstream_is_a_system_fault_not_a_case_failure(monkeypatch):
+    async def broken(self):
+        raise RuntimeError("directory down")
+
+    monkeypatch.setattr(FakeDirectory, "display_name", broken)
+    case = ask()
+    status, body = await System().ask(case, NORTH)
+    assert status == 502
+    with pytest.raises(SystemFault):
+        verdict(case, status, body)

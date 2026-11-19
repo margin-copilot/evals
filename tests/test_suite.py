@@ -1,11 +1,12 @@
 """The eval suite. Cases for milestones up to CURRENT_MILESTONE must pass. Later cases must fail
-with CaseFailed (the system answered, but not as expected); a crash or an early pass fails CI."""
+with CaseFailed (the system answered, but not as expected). A crash, a 5xx where an answer was
+expected (SystemFault), or an early pass fails CI."""
 
 import pytest
 
 from margin_evals import CURRENT_MILESTONE
 from margin_evals.cases import load_cases, load_personas
-from margin_evals.judge import CaseFailed, judge
+from margin_evals.judge import CaseFailed, verdict
 from margin_evals.system import System
 
 PERSONAS = load_personas()
@@ -23,5 +24,4 @@ def cases():
 @pytest.mark.parametrize("case", list(cases()))
 async def test_case(case):
     status, body = await System().ask(case, PERSONAS[case.persona])
-    if problems := judge(case, status, body):
-        raise CaseFailed("; ".join(problems))
+    verdict(case, status, body)

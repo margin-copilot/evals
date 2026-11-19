@@ -18,7 +18,10 @@ Cases live in `cases/*.toml`: golden and scope questions from the planted data s
 The harness builds the system in one process: orchestrator → A2A → data-agent, with fake outbound adapters and locally signed tokens. No Azure, no network. `milestone` is the first milestone where a case must pass:
 - **Done milestones:** cases up to `CURRENT_MILESTONE` (`src/margin_evals/__init__.py`) must pass.
 - **Later milestones:** later cases must fail, and only with `CaseFailed`, meaning the system answered differently from what the case expects.
-- **Crashes and early passes:** a crash fails CI, and so does a case that starts passing early. Promote it by finishing its milestone and bumping `CURRENT_MILESTONE`.
+- **Crashes and early passes:** a crash fails CI, and so does a 5xx where a case expects an answer (`SystemFault`).
+  A case that starts passing early fails CI too; promote it by finishing its milestone and bumping `CURRENT_MILESTONE`.
+- **Matching:** numbers match whole: `0%` isn't found in `30%`.
+- **Forbidden agents:** `not_agents` lists agents that must not be called.
 
 ```bash
 uv sync

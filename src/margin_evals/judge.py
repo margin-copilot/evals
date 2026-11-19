@@ -1,10 +1,34 @@
 """Compares one chat API response with a case's expectations."""
 
+import re
+
 from margin_evals.cases import Case
 
 
 class CaseFailed(AssertionError):
     """The system answered, but not as the case expects. The only way a pending case may fail."""
+
+
+class SystemFault(Exception):
+    """The system broke (5xx) where the case expects an answer. Never an expected failure."""
+
+
+def verdict(case: Case, status: int, body: dict | None) -> None:
+    if status >= 500 and case.expect.status < 500:
+        raise SystemFault(f"status {status}: {body}")
+    if problems := judge(case, status, body):
+        raise CaseFailed("; ".join(problems))
+
+
+def mentions(answer: str, text: str) -> bool:
+    """Substring match, but numbers match whole: "0%" isn't in "30%", "21.3" isn't in "121.3"."""
+    text = text.strip().lower()
+    pattern = re.escape(text)
+    if text[:1].isdigit():
+        pattern = r"(?<![\d.])" + pattern
+    if text[-1:].isdigit():
+        pattern += r"(?!\.?\d)"
+    return re.search(pattern, answer) is not None
 
 
 def judge(case: Case, status: int, body: dict | None) -> list[str]:
@@ -20,17 +44,20 @@ def judge(case: Case, status: int, body: dict | None) -> list[str]:
     citations = set(body.get("citations") or [])
     problems = []
     for item in expect.contains:
-        if not any(alt.strip().lower() in answer for alt in item.split("|")):
+        if not any(mentions(answer, alt) for alt in item.split("|")):
             problems.append(f"answer lacks {item!r}")
     for item in expect.not_contains:
-        if item.lower() in answer:
-            problems.append(f"answer contains {item!r}")
+        for alt in item.split("|"):
+            if mentions(answer, alt):
+                problems.append(f"answer contains {alt.strip()!r}")
     if expect.refusal is not None and refusal != expect.refusal:
         problems.append(f"refusal {refusal!r}, expected {expect.refusal!r}")
     if expect.refusal is None and expect.contains and refusal:
         problems.append(f"unexpected refusal {refusal!r}")
     if missing := sorted(set(expect.agents) - agents):
         problems.append(f"agents not called: {', '.join(missing)}")
+    if forbidden := sorted(set(expect.not_agents) & agents):
+        problems.append(f"forbidden agents called: {', '.join(forbidden)}")
     if expect.no_agents and agents:
         problems.append(f"agents called: {', '.join(sorted(agents))}")
     if missing := sorted(set(expect.citations) - citations):

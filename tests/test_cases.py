@@ -77,3 +77,29 @@ def test_a_200_case_with_only_negative_checks_is_rejected(tmp_path):
     negative = case().replace("expect.contains", "expect.not_contains")
     with pytest.raises(CaseError, match="needs a positive check"):
         load_cases(write(tmp_path, negative))
+
+
+@pytest.mark.parametrize(
+    ("old", "new", "message"),
+    [
+        ('expect.contains = ["21.3"]', 'expect.contains = "21.3"', "list of non-empty strings"),
+        ('expect.contains = ["21.3"]', 'expect.contains = ["21.3|"]', "empty alternative"),
+        ('expect.contains = ["21.3"]', 'expect.contains = [""]', "list of non-empty strings"),
+        ("milestone = 4", "milestone = true", "milestone"),
+        ("milestone = 4", "milestone = 4.5", "milestone"),
+        ("milestone = 4", 'milestone = "4"', "milestone"),
+        (
+            'expect.contains = ["21.3"]',
+            'expect.contains = ["21.3"]\nexpect.status = "200"',
+            "status",
+        ),
+    ],
+)
+def test_values_that_would_empty_a_check_are_rejected(tmp_path, old, new, message):
+    with pytest.raises(CaseError, match=message):
+        load_cases(write(tmp_path, case().replace(old, new)))
+
+
+def test_repeat_must_be_at_least_one(tmp_path):
+    with pytest.raises(CaseError, match="repeat"):
+        load_cases(write(tmp_path, case(repeat="0")))

@@ -20,6 +20,7 @@ TOKENS = frozenset(
 )
 AGENTS = frozenset({"data-agent", "policy-agent", "action-agent"})
 LAST_MILESTONE = 12
+LIST_FIELDS = ("contains", "not_contains", "agents", "not_agents", "citations", "not_citations")
 
 
 class CaseError(ValueError):
@@ -40,6 +41,7 @@ class Expect:
     not_contains: tuple[str, ...] = ()
     refusal: str | None = None
     agents: tuple[str, ...] = ()
+    not_agents: tuple[str, ...] = ()
     no_agents: bool = False
     citations: tuple[str, ...] = ()
     not_citations: tuple[str, ...] = ()
@@ -90,6 +92,7 @@ def _case(raw: dict, personas: dict[str, Persona], source: str) -> Case:
     expect_raw = raw.pop("expect", {})
     _check_keys(raw, {f.name for f in fields(Case)} - {"expect"}, where)
     _check_keys(expect_raw, {f.name for f in fields(Expect)}, f"{where} expect")
+    _check_types(raw, expect_raw, where)
     expect = Expect(**{k: tuple(v) if isinstance(v, list) else v for k, v in expect_raw.items()})
     case = Case(expect=expect, **raw)
     problems = []
@@ -103,8 +106,8 @@ def _case(raw: dict, personas: dict[str, Persona], source: str) -> Case:
         problems.append(f"token {case.token!r}")
     if expect.refusal is not None and expect.refusal not in REFUSALS:
         problems.append(f"refusal {expect.refusal!r}")
-    if not set(expect.agents) <= AGENTS:
-        problems.append(f"agents {sorted(set(expect.agents) - AGENTS)}")
+    if not set(expect.agents) | set(expect.not_agents) <= AGENTS:
+        problems.append(f"agents {sorted((set(expect.agents) | set(expect.not_agents)) - AGENTS)}")
     # Negative checks alone pass on a system that says nothing, so a 200 case needs a positive one.
     if expect.status == 200 and not (
         expect.contains or expect.agents or expect.citations or expect.refusal
@@ -119,3 +122,35 @@ def _check_keys(raw: dict, allowed: set[str], where: str) -> None:
     unknown = sorted(set(raw) - allowed)
     if unknown:
         raise CaseError(f"{where}: unknown keys {', '.join(unknown)}")
+
+
+def _is_int(value: object) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def _check_types(raw: dict, expect_raw: dict, where: str) -> None:
+    """Rejects values that would silently empty a check (a string read as a list, "a|" etc.)."""
+    problems = []
+    for name in ("id", "kind", "persona", "question", "token", "note"):
+        if name in raw and not isinstance(raw[name], str):
+            problems.append(f"{name} must be a string")
+    if not _is_int(raw.get("milestone")):
+        problems.append("milestone must be an integer")
+    if "repeat" in raw and not (_is_int(raw["repeat"]) and raw["repeat"] >= 1):
+        problems.append("repeat must be an integer of at least 1")
+    if "raw_body" in raw and not isinstance(raw["raw_body"], str):
+        problems.append("raw_body must be a string")
+    if "status" in expect_raw and not _is_int(expect_raw["status"]):
+        problems.append("status must be an integer")
+    if "no_agents" in expect_raw and not isinstance(expect_raw["no_agents"], bool):
+        problems.append("no_agents must be true or false")
+    if "refusal" in expect_raw and not isinstance(expect_raw["refusal"], str):
+        problems.append("refusal must be a string")
+    for name in LIST_FIELDS:
+        value = expect_raw.get(name, [])
+        if not isinstance(value, list) or not all(isinstance(v, str) and v.strip() for v in value):
+            problems.append(f"{name} must be a list of non-empty strings")
+        elif any(not alt.strip() for v in value for alt in v.split("|")):
+            problems.append(f"{name} has an empty alternative")
+    if problems:
+        raise CaseError(f"{where}: {', '.join(problems)}")

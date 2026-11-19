@@ -1,5 +1,7 @@
+import pytest
+
 from margin_evals.cases import Case, Expect
-from margin_evals.judge import judge
+from margin_evals.judge import CaseFailed, SystemFault, judge, verdict
 
 
 def case(**expect):
@@ -69,3 +71,50 @@ def test_no_agents_means_no_tool_calls():
 
 def test_missing_fields_count_as_empty():
     assert judge(case(citations=("PP-01 §5",)), 200, None) == ["missing citations: PP-01 §5"]
+
+
+@pytest.mark.parametrize(
+    ("expected", "answer"),
+    [("0%", "30% off"), ("0%", "costs up 6.0%"), ("21.3", "121.3"), ("35", "35.00 MAD")],
+)
+def test_numbers_match_whole_numbers_only(expected, answer):
+    assert judge(case(contains=(expected,)), 200, {"answer": answer}) == [
+        f"answer lacks {expected!r}"
+    ]
+
+
+@pytest.mark.parametrize(
+    ("expected", "answer"),
+    [
+        ("0%", "0% supplier funding"),
+        ("35", "rose 35%"),
+        ("24.1", "from 24.1%"),
+        ("yogurt", "yogurts"),
+    ],
+)
+def test_whole_numbers_and_word_stems_still_match(expected, answer):
+    assert judge(case(contains=(expected,)), 200, {"answer": answer}) == []
+
+
+def test_each_forbidden_alternative_is_checked():
+    assert judge(case(not_contains=("23.6|24.2",)), 200, {"answer": "South 24.2"}) == [
+        "answer contains '24.2'"
+    ]
+
+
+def test_forbidden_agents():
+    body = {"answer": "a", "agents": ["policy-agent", "action-agent"]}
+    assert judge(case(not_agents=("action-agent",)), 200, body) == [
+        "forbidden agents called: action-agent"
+    ]
+
+
+def test_unexpected_server_error_is_a_system_fault_not_a_case_failure():
+    with pytest.raises(SystemFault):
+        verdict(case(contains=("21.3",)), 502, {"error": "data-agent unavailable"})
+
+
+def test_verdict_raises_case_failed_for_a_wrong_answer_and_passes_a_right_one():
+    with pytest.raises(CaseFailed, match="answer lacks"):
+        verdict(case(contains=("21.3",)), 200, {"answer": "24.2"})
+    verdict(case(status=401), 401, {"error": "missing bearer token"})
