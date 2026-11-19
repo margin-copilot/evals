@@ -9,6 +9,7 @@ from margin_evals.live import chat, load_env, sign_in
 
 
 def main(args: list[str]) -> int:
+    sys.stdout.reconfigure(line_buffering=True)  # show progress through `| tee` too
     if len(args) != 2:
         print(__doc__)
         return 2

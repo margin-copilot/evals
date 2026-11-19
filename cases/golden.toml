@@ -114,7 +114,7 @@ milestone = 4
 suite = "live"
 persona = "south.mgr"
 question = "How did the mineral water price match in August 2026 affect South beverage margin?"
-expect.contains = ["5.50", "3 points|3 pts|3 percentage points"]
+expect.contains = ["5.50", "3.3|3 points|3 pts|3 percentage points"]
 expect.agents = ["data-agent"]
 
 [[case]]

@@ -18,6 +18,7 @@ from margin_evals.live import chat, load_env, sign_in
 
 
 def main(args: list[str]) -> int:
+    sys.stdout.reconfigure(line_buffering=True)  # show progress through `| tee` too
     milestone = CURRENT_MILESTONE
     if args[:1] == ["--milestone"]:
         milestone, args = int(args[1]), args[2:]
