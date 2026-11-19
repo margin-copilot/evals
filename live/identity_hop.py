@@ -49,11 +49,10 @@ def main() -> int:
     with httpx.Client(timeout=120) as http:
         token = sign_in(env, env["CLI_CLIENT_ID"])
         response = http.post(chat, json=QUESTION, headers={"Authorization": f"Bearer {token}"})
-        expected = f"data-agent sees {env['EXPECTED_DISPLAY_NAME']}"
-        answer = response.json().get("answer") if response.status_code == 200 else None
+        agents = response.json().get("agents") if response.status_code == 200 else None
         check(
             "signed-in user crosses the A2A hop",
-            answer == expected,
+            agents == ["data-agent"],
             f"{response.status_code} {response.text[:200]}",
         )
 

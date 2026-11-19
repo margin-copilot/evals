@@ -111,3 +111,29 @@ def test_error_is_only_for_error_statuses(tmp_path):
     )
     with pytest.raises(CaseError, match="error needs an error status"):
         load_cases(write(tmp_path, bad))
+
+
+def test_suite_defaults_to_ci_and_accepts_live(tmp_path):
+    [ci] = load_cases(write(tmp_path, case()))
+    [live] = load_cases(write(tmp_path, case(suite='"live"')))
+    assert (ci.suite, live.suite) == ("ci", "live")
+
+
+@pytest.mark.parametrize(
+    ("fields", "message"),
+    [
+        ({"suite": '"nightly"'}, "suite"),
+        ({"suite": "1"}, "suite must be a string"),
+        ({"suite": '"live"', "token": '"expired"'}, "a live case signs in for real"),
+        ({"suite": '"live"', "raw_body": '"{}"'}, "a live case signs in for real"),
+    ],
+)
+def test_bad_suites_are_rejected(tmp_path, fields, message):
+    with pytest.raises(CaseError, match=message):
+        load_cases(write(tmp_path, case(**fields)))
+
+
+def test_cases_that_need_the_model_and_the_database_run_live():
+    milestone_4 = [c for c in load_cases() if c.milestone == 4]
+    assert len(milestone_4) == 22
+    assert {c.suite for c in milestone_4} == {"live"}

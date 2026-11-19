@@ -6,7 +6,7 @@ import json
 import httpx
 import jwt
 from data_agent.adapters.inbound.a2a_server import create_a2a_app
-from data_agent.adapters.outbound.directory import FakeDirectory
+from data_agent.adapters.outbound.analyst import FakeAnalyst
 from margin_copilot_shared.security.obo import OboFailed
 from margin_copilot_shared.security.tokens import TokenRejected, TokenValidator
 from margin_copilot_shared.testing.issuer import LocalIssuer
@@ -58,7 +58,7 @@ class System:
         self.issuer = LocalIssuer()
         user_tokens = self.issuer.validator(audience=ORCHESTRATOR, allowed_callers=frozenset({CLI}))
         data_agent_app = create_a2a_app(
-            FakeDirectory(),
+            FakeAnalyst(),
             self.issuer.validator(audience=DATA_AGENT, allowed_callers=frozenset({ORCHESTRATOR})),
             DATA_AGENT_URL,
         )

@@ -1,6 +1,6 @@
 import jwt
 import pytest
-from data_agent.adapters.outbound.directory import FakeDirectory
+from data_agent.adapters.outbound.analyst import FakeAnalyst
 from margin_copilot_shared.security.obo import OboFailed
 
 from margin_evals.cases import Case, Expect, Persona
@@ -24,7 +24,14 @@ def ask(question="Who am I?", **fields):
 
 async def test_identity_crosses_the_hop_in_process():
     status, body = await System().ask(ask(), NORTH)
-    assert (status, body) == (200, {"answer": "data-agent sees user persona-north-mgr"})
+    assert (status, body) == (
+        200,
+        {
+            "answer": "fake data-agent answers as user persona-north-mgr",
+            "refusal": None,
+            "agents": ["data-agent"],
+        },
+    )
 
 
 async def test_each_token_variant_gets_the_expected_status():
@@ -59,10 +66,10 @@ def test_local_obo_refuses_unknown_scopes_and_bad_tokens():
 
 
 async def test_a_broken_downstream_is_a_system_fault_not_a_case_failure(monkeypatch):
-    async def broken(self):
-        raise RuntimeError("directory down")
+    async def broken(self, question):
+        raise RuntimeError("database down")
 
-    monkeypatch.setattr(FakeDirectory, "display_name", broken)
+    monkeypatch.setattr(FakeAnalyst, "answer", broken)
     case = ask()
     status, body = await System().ask(case, NORTH)
     assert status == 502

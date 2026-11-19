@@ -6,6 +6,8 @@ from pathlib import Path
 
 CASES_DIR = Path(__file__).resolve().parents[2] / "cases"
 KINDS = frozenset({"plumbing", "golden", "scope", "adversarial"})
+# ci: in-process on fakes (D-019). live: the deployed system, real sign-ins, model and data (D-033).
+SUITES = frozenset({"ci", "live"})
 REFUSALS = frozenset({"out_of_scope", "no_access", "no_data"})
 TOKENS = frozenset(
     {
@@ -59,6 +61,7 @@ class Case:
     token: str = "valid"
     raw_body: str | None = None
     repeat: int = 1
+    suite: str = "ci"
     note: str = ""
 
 
@@ -105,6 +108,10 @@ def _case(raw: dict, personas: dict[str, Persona], source: str) -> Case:
         problems.append(f"persona {case.persona!r}")
     if case.token not in TOKENS:
         problems.append(f"token {case.token!r}")
+    if case.suite not in SUITES:
+        problems.append(f"suite {case.suite!r}")
+    if case.suite == "live" and (case.token != "valid" or case.raw_body is not None):
+        problems.append("token or raw_body (a live case signs in for real and asks a question)")
     if expect.refusal is not None and expect.refusal not in REFUSALS:
         problems.append(f"refusal {expect.refusal!r}")
     if expect.error is not None and expect.status < 400:
@@ -134,7 +141,7 @@ def _is_int(value: object) -> bool:
 def _check_types(raw: dict, expect_raw: dict, where: str) -> None:
     """Rejects values that would silently empty a check (a string read as a list, "a|" etc.)."""
     problems = []
-    for name in ("id", "kind", "persona", "question", "token", "note"):
+    for name in ("id", "kind", "persona", "question", "token", "suite", "note"):
         if name in raw and not isinstance(raw[name], str):
             problems.append(f"{name} must be a string")
     if not _is_int(raw.get("milestone")):

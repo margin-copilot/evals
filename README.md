@@ -15,7 +15,7 @@ Cases live in `cases/*.toml`: golden and scope questions from the planted data s
 - the agents called;
 - the citations.
 
-The harness builds the system in one process: orchestrator → A2A → data-agent, with fake outbound adapters and locally signed tokens. No Azure, no network. `milestone` is the first milestone where a case must pass:
+The harness builds the system in one process: orchestrator → A2A → data-agent, with fake outbound adapters and locally signed tokens. No Azure, no network. Cases marked `suite = "live"` are skipped here and run in the live suite below. `milestone` is the first milestone where a case must pass:
 - **Done milestones:** cases up to `CURRENT_MILESTONE` (`src/margin_evals/__init__.py`) must pass.
 - **Later milestones:** later cases must fail, and only with `CaseFailed`, meaning the system answered differently from what the case expects.
 - **Crashes and early passes:** a crash fails CI, and so does a 5xx where a case expects an answer (`SystemFault`).
@@ -32,26 +32,24 @@ uv run pytest -q -rxX
 
 Why it works this way, and the response fields the cases expect: D-029 in the [docs repo](https://github.com/margin-copilot/docs/blob/main/decisions.md).
 
-## Live checks (run on a laptop)
+## The live suite and checks (run on a laptop)
 
-The live suite runs against real Azure after an interactive browser sign-in per test user (D-019 in the docs repo). Device code flow is blocked in new tenants.
+Cases with `suite = "live"` need the real model and data, so CI skips them (D-033). They run against the deployed system after an interactive browser sign-in per test user (D-019). Device code flow is blocked in new tenants.
 
 ```bash
-cp .env.example .env     # or: ../infra/scripts/spike-env.sh > .env (private infra repo)
-uv run live/identity_hop.py
+../infra/scripts/spike-env.sh > .env                                  # private infra repo
+grep -E '^SQL_(SERVER|DATABASE)=' ../data/.env >> .env                # for rls_check.py
+uv run live/run_cases.py --milestone 4    # live cases up to milestone 4; prints every answer
+uv run live/ask.py north.mgr "What was dairy margin in the North in October 2026?"
 ```
 
+`run_cases.py` signs in once per test user (the browser names the user to pick) and judges each answer like CI does. `ask.py` asks one question as one user and prints the answer, the refusal and the agents called.
+
 `identity_hop.py` (milestone 1) checks four things:
-- A signed-in test user crosses the orchestrator → data-agent A2A hop, and the data-agent's tool reaches Microsoft Graph as that user.
+- A signed-in test user's question crosses the orchestrator → data-agent A2A hop.
 - A token from an app that isn't on the allow-list gets 403.
 - A locally signed token gets 401.
 - The data-agent can't be reached from the internet.
-
-The CI suite above covers the same paths on fake adapters.
-
-## License
-
-MIT. See [LICENSE](LICENSE).
 
 `rls_check.py` (milestone 3) signs in as north.mgr, south.mgr and pricing.director and runs the same SQL against the Azure SQL database for each. It checks that:
 - each user gets only their region's rows, also through joins and in `price_history`;
@@ -59,6 +57,10 @@ MIT. See [LICENSE](LICENSE).
 - no test user can read `rls.user_region`.
 
 ```bash
-grep -E '^SQL_(SERVER|DATABASE)=' ../data/.env >> .env   # private values, gitignored
+uv run live/identity_hop.py
 uv run live/rls_check.py
 ```
+
+## License
+
+MIT. See [LICENSE](LICENSE).

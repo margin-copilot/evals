@@ -15,7 +15,9 @@ PERSONAS = load_personas()
 def cases():
     for case in load_cases(personas=PERSONAS):
         marks = []
-        if case.milestone > CURRENT_MILESTONE:
+        if case.suite == "live":
+            marks.append(pytest.mark.skip(reason="live suite: uv run live/run_cases.py"))
+        elif case.milestone > CURRENT_MILESTONE:
             reason = f"needs milestone {case.milestone}"
             marks.append(pytest.mark.xfail(raises=CaseFailed, strict=True, reason=reason))
         yield pytest.param(case, id=case.id, marks=marks)
