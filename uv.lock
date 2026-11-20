@@ -672,7 +672,7 @@ requires-dist = [
     { name = "margin-copilot-shared", git = "https://github.com/margin-copilot/shared?tag=v0.3.0" },
     { name = "msal", specifier = "==1.39.0" },
     { name = "msal-extensions", specifier = "==1.3.1" },
-    { name = "orchestrator", git = "https://github.com/margin-copilot/orchestrator?tag=v0.3.1" },
+    { name = "orchestrator", git = "https://github.com/margin-copilot/orchestrator?tag=v0.3.2" },
     { name = "pyjwt", extras = ["crypto"], specifier = "==2.15.1" },
 ]
 
@@ -837,7 +837,7 @@ wheels = [
 [[package]]
 name = "orchestrator"
 version = "0.3.0"
-source = { git = "https://github.com/margin-copilot/orchestrator?tag=v0.3.1#b10d1dc9143cf87966111596129fe705dd87d14d" }
+source = { git = "https://github.com/margin-copilot/orchestrator?tag=v0.3.2#368ec5dd02b9c63d74ea5d8aa24c9e04288dd008" }
 dependencies = [
     { name = "a2a-sdk", extra = ["http-server"] },
     { name = "agent-framework-core" },
