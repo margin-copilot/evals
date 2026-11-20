@@ -1,6 +1,7 @@
 """Compares one chat API response with a case's expectations."""
 
 import re
+from decimal import Decimal
 
 from margin_evals.cases import Case
 
@@ -20,9 +21,22 @@ def verdict(case: Case, status: int, body: dict | None) -> None:
         raise CaseFailed("; ".join(problems))
 
 
+NUMBER = re.compile(r"(?<![\d.])(\d+(?:\.\d+)?)(%?)")
+DECIMAL_OR_PERCENT = re.compile(r"(\d+(?:\.\d+)?)(%?)")
+
+
 def mentions(answer: str, text: str) -> bool:
-    """Substring match, but numbers match whole: "0%" isn't in "30%", "21.3" isn't in "121.3"."""
+    """Substring match, but numbers match whole: "0%" isn't in "30%", "21.3" isn't in "121.3".
+    A decimal or a percentage matches by value and unit, so "30%" finds "30.0%" and "7.20" finds
+    "7.2"; a plain integer stays exact, so "35" doesn't find an unrelated "35.00"."""
     text = text.strip().lower()
+    target = DECIMAL_OR_PERCENT.fullmatch(text)
+    if target and (target.group(2) or "." in target.group(1)):
+        value, percent = Decimal(target.group(1)), target.group(2)
+        return any(
+            Decimal(number) == value and (unit or not percent)
+            for number, unit in NUMBER.findall(answer)
+        )
     pattern = re.escape(text)
     if text[:1].isdigit():
         pattern = r"(?<![\d.])" + pattern

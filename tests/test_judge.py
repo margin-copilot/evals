@@ -78,7 +78,14 @@ def test_missing_fields_are_reported_and_count_as_empty():
 
 @pytest.mark.parametrize(
     ("expected", "answer"),
-    [("0%", "30% off"), ("0%", "costs up 6.0%"), ("21.3", "121.3"), ("35", "35.00 MAD")],
+    [
+        ("0%", "30% off"),
+        ("0%", "costs up 6.0%"),
+        ("21.3", "121.3"),
+        ("35", "35.00 MAD"),
+        ("30%", "for 30 days"),
+        ("2.9", "2.95%"),
+    ],
 )
 def test_numbers_match_whole_numbers_only(expected, answer):
     assert judge(case(contains=(expected,)), 200, {"answer": answer}) == [
@@ -93,6 +100,10 @@ def test_numbers_match_whole_numbers_only(expected, answer):
         ("35", "rose 35%"),
         ("24.1", "from 24.1%"),
         ("yogurt", "yogurts"),
+        # Same value, written differently: a decimal or percentage matches by value and unit.
+        ("30%", "a 30.0% discount"),
+        ("7.20", "price 7.2 MAD"),
+        ("24.1", "from 24.10%"),
     ],
 )
 def test_whole_numbers_and_word_stems_still_match(expected, answer):
