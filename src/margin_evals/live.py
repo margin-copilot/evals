@@ -53,12 +53,15 @@ def sign_in(env: dict[str, str], persona: str) -> str:
 
 
 def chat(env: dict[str, str], token: str, question: str) -> tuple[int, dict | None]:
-    response = httpx.post(
-        f"{env['ORCHESTRATOR_URL']}/chat",
-        json={"question": question},
-        headers={"Authorization": f"Bearer {token}"},
-        timeout=TIMEOUT,
-    )
+    try:
+        response = httpx.post(
+            f"{env['ORCHESTRATOR_URL']}/chat",
+            json={"question": question},
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=TIMEOUT,
+        )
+    except httpx.TransportError as error:  # judged as a failed case; the run goes on
+        return 0, {"error": f"no response: {type(error).__name__}"}
     try:
         body = response.json()
     except ValueError:

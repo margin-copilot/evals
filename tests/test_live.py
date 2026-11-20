@@ -43,3 +43,12 @@ def test_signing_in_as_someone_else_is_refused(monkeypatch):
     monkeypatch.setattr(live, "client", lambda env: app)
     with pytest.raises(live.SignInFailed, match="expected north.mgr"):
         live.sign_in(ENV, "north.mgr")
+
+
+def test_a_dropped_connection_fails_the_case_instead_of_the_run(monkeypatch):
+    def drop(*args, **kwargs):
+        raise live.httpx.RemoteProtocolError("Server disconnected without sending a response.")
+
+    monkeypatch.setattr(live.httpx, "post", drop)
+    env = {**ENV, "ORCHESTRATOR_URL": "https://orchestrator.example"}
+    assert live.chat(env, "token", "question") == (0, {"error": "no response: RemoteProtocolError"})
