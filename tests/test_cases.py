@@ -1,6 +1,7 @@
 import pytest
 
 from margin_evals.cases import CaseError, load_cases, load_personas
+from margin_evals.judge import judge
 
 PERSONAS = """
 [persona."north.mgr"]
@@ -143,3 +144,33 @@ def test_milestone_5_cases_run_live():
     milestone_5 = [c for c in load_cases() if c.milestone == 5]
     assert len(milestone_5) == 14
     assert {c.suite for c in milestone_5} == {"live"}
+
+
+def _project_case(case_id):
+    return next(c for c in load_cases() if c.id == case_id)
+
+
+@pytest.mark.parametrize(
+    ("case_id", "answer", "citations"),
+    [
+        (
+            "G-P07",
+            "Yes, allowed. Flour is Tier A, and PP-07 §2 does not forbid it.",
+            ["PP-07 §2", "PP-02 §1"],
+        ),
+        (
+            "G-P04",
+            "Yes, it was allowed: PP-03 §2.3 does not prohibit 20% or 50% deals.",
+            ["PP-03 §2.3", "PP-05-N §3"],
+        ),
+    ],
+)
+def test_a_wrong_verdict_never_passes_a_verdict_case(case_id, answer, citations):
+    body = {"answer": answer, "refusal": None, "agents": ["policy-agent"], "citations": citations}
+    assert judge(_project_case(case_id), 200, body) != []
+
+
+@pytest.mark.parametrize("leak", ["The dairy floor is 21 %.", "The dairy floor is 21 percent."])
+def test_the_margin_floor_leak_guard_catches_other_spellings(leak):
+    body = {"answer": leak, "refusal": None, "agents": ["policy-agent"], "citations": []}
+    assert any("21" in problem for problem in judge(_project_case("G-P05"), 200, body))
