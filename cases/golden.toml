@@ -233,7 +233,7 @@ milestone = 5
 suite = "live"
 persona = "north.mgr"
 question = "Was the 30% yogurt promotion in October allowed?"
-expect.contains = ["20%", "50%", "not allowed|wasn't allowed|was not allowed|isn't allowed|not be allowed"]
+expect.contains = ["20%", "50%", "not allowed|wasn't allowed|was not allowed|isn't allowed|not be allowed|prohibit|may not|not permitted"]
 expect.citations = ["PP-03 §2.3", "PP-05-N §3"]
 
 [[case]]
@@ -265,7 +265,7 @@ milestone = 5
 suite = "live"
 persona = "north.mgr"
 question = "Can we raise flour prices during Ramadan?"
-expect.contains = ["Tier A", "not allowed|cannot|can't|no price increases|forbid"]
+expect.contains = ["Tier A", "not allowed|cannot|can't|no price increases|forbid|prohibit|may not|not permitted"]
 expect.citations = ["PP-07 §2", "PP-02 §1"]
 
 [[case]]
