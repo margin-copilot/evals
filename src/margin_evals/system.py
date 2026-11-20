@@ -11,7 +11,8 @@ from margin_copilot_shared.security.obo import OboFailed
 from margin_copilot_shared.security.tokens import TokenRejected, TokenValidator
 from margin_copilot_shared.testing.issuer import LocalIssuer
 from orchestrator.adapters.inbound.http_api import create_http_app
-from orchestrator.adapters.outbound.data_agent import A2ADataAgent
+from orchestrator.adapters.outbound.a2a_agent import A2AAgent, FakeAgent
+from orchestrator.adapters.outbound.router import FakeRouter
 
 from margin_evals.cases import Case, Persona
 
@@ -63,13 +64,15 @@ class System:
             DATA_AGENT_URL,
         )
         self.obo = LocalObo(self.issuer, user_tokens, ORCHESTRATOR, {DATA_AGENT_SCOPE: DATA_AGENT})
-        data_agent = A2ADataAgent(
+        data_agent = A2AAgent(
+            "data-agent",
             DATA_AGENT_URL,
             DATA_AGENT_SCOPE,
             self.obo.exchange,
             httpx.AsyncClient(transport=httpx.ASGITransport(app=data_agent_app)),
         )
-        app = create_http_app(data_agent, user_tokens)
+        agents = {"data-agent": data_agent, "policy-agent": FakeAgent("policy-agent")}
+        app = create_http_app(FakeRouter(), agents, user_tokens)
         self.client = httpx.AsyncClient(
             transport=httpx.ASGITransport(app=app), base_url="http://orchestrator"
         )

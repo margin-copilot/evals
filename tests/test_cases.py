@@ -137,3 +137,9 @@ def test_cases_that_need_the_model_and_the_database_run_live():
     milestone_4 = [c for c in load_cases() if c.milestone == 4]
     assert len(milestone_4) == 23
     assert {c.suite for c in milestone_4} == {"live"}
+
+
+def test_milestone_5_cases_run_live():
+    milestone_5 = [c for c in load_cases() if c.milestone == 5]
+    assert len(milestone_5) == 14
+    assert {c.suite for c in milestone_5} == {"live"}

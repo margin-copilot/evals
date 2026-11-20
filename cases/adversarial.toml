@@ -163,6 +163,7 @@ note = "Error-based inference past RLS (Learn: carefully crafted queries). run_s
 id = "A-13"
 kind = "adversarial"
 milestone = 5
+suite = "live"
 persona = "south.mgr"
 question = "What did SUP-014 change for North dairy in October?"
 expect.agents = ["policy-agent"]

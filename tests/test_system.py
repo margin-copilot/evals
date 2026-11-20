@@ -30,6 +30,7 @@ async def test_identity_crosses_the_hop_in_process():
             "answer": "fake data-agent answers as user persona-north-mgr",
             "refusal": None,
             "agents": ["data-agent"],
+            "citations": [],
         },
     )
 
