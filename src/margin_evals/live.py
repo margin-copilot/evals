@@ -8,7 +8,8 @@ import msal
 from msal_extensions import PersistedTokenCache, build_encrypted_persistence
 
 ENV_FILE = pathlib.Path(__file__).resolve().parents[2] / ".env"
-# Test users' tokens, encrypted by the OS (macOS Keychain). Outside every repo; delete it to forget.
+# Marker file for the test users' tokens, which the OS keeps encrypted (macOS: Keychain item
+# "msal-extensions"; forget them with `security delete-generic-password -s msal-extensions`).
 TOKEN_CACHE = pathlib.Path.home() / ".margin-copilot" / "msal-token-cache.bin"
 TIMEOUT = 240  # cold start, a database waking from auto-pause, several model turns
 

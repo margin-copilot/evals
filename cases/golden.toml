@@ -180,6 +180,19 @@ expect.contains = ["30%", "no supplier funding|0% supplier funding|not funded"]
 expect.agents = ["data-agent"]
 
 # --- Policy (milestone 5): cited answers from AI Search, filtered by the user's groups.
+
+[[case]]
+id = "G-D17"
+kind = "golden"
+milestone = 4
+suite = "live"
+persona = "north.mgr"
+question = "What was the whole chain's dairy margin in October 2026?"
+expect.contains = ["21.3", "North"]
+expect.not_contains = ["23.6", "24.2"]
+expect.agents = ["data-agent"]
+note = "A manager sees only their region: the answer must say so, not present North's 21.3% as the chain's (milestone 4 final review)."
+
 [[case]]
 id = "G-P01"
 kind = "golden"

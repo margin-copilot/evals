@@ -43,7 +43,7 @@ uv run live/run_cases.py --milestone 4    # live cases up to milestone 4; prints
 uv run live/ask.py north.mgr "What was dairy margin in the North in October 2026?"
 ```
 
-`run_cases.py` judges each answer like CI does. Each test user signs in through the browser once (the terminal names the user to pick); the tokens are then kept encrypted in the OS keychain (`~/.margin-copilot/msal-token-cache.bin`; delete it to forget them), so later runs are silent. `ask.py` asks one question as one user and prints the answer, the refusal and the agents called.
+`run_cases.py` judges each answer like CI does. Each test user signs in through the browser once (the terminal names the user to pick); the tokens are then kept encrypted in the OS keychain (macOS: the Keychain item `msal-extensions`; forget them with `security delete-generic-password -s msal-extensions`), so later runs are silent. `ask.py` asks one question as one user and prints the answer, the refusal and the agents called.
 
 `identity_hop.py` (milestone 1) checks four things:
 - A signed-in test user's question crosses the orchestrator → data-agent A2A hop.

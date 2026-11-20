@@ -135,5 +135,5 @@ def test_bad_suites_are_rejected(tmp_path, fields, message):
 
 def test_cases_that_need_the_model_and_the_database_run_live():
     milestone_4 = [c for c in load_cases() if c.milestone == 4]
-    assert len(milestone_4) == 22
+    assert len(milestone_4) == 23
     assert {c.suite for c in milestone_4} == {"live"}
