@@ -21,6 +21,8 @@ def main(args: list[str]) -> int:
         return 1
     print(body["answer"])
     print(f"\nrefusal: {body.get('refusal')}   agents: {', '.join(body.get('agents') or [])}")
+    if body.get("citations"):
+        print(f"citations: {', '.join(body['citations'])}")
     return 0
 
 
