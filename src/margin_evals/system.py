@@ -12,9 +12,12 @@ from margin_copilot_shared.security.tokens import TokenRejected, TokenValidator
 from margin_copilot_shared.testing.issuer import LocalIssuer
 from orchestrator.adapters.inbound.http_api import create_http_app
 from orchestrator.adapters.outbound.a2a_agent import A2AAgent, FakeAgent
+from orchestrator.adapters.outbound.composer import FakeComposer
+from orchestrator.adapters.outbound.condenser import FakeCondenser
+from orchestrator.adapters.outbound.fakes import MemoryConversationStore
 from orchestrator.adapters.outbound.router import FakeRouter
 
-from margin_evals.cases import Case, Persona
+from margin_evals.cases import OPENER, Case, Persona, load_personas
 
 ORCHESTRATOR = "eval-orchestrator"
 DATA_AGENT = "eval-data-agent"
@@ -76,7 +79,14 @@ class System:
             "policy-agent": FakeAgent("policy-agent"),
             "action-agent": FakeAgent("action-agent"),
         }
-        app = create_http_app(FakeRouter(), agents, user_tokens)
+        app = create_http_app(
+            FakeRouter(),
+            agents,
+            FakeComposer(),
+            FakeCondenser(),
+            MemoryConversationStore(),
+            user_tokens,
+        )
         self.client = httpx.AsyncClient(
             transport=httpx.ASGITransport(app=app), base_url="http://orchestrator"
         )
@@ -114,10 +124,21 @@ class System:
         if case.raw_body is not None:
             content = case.raw_body.encode()
         else:
-            content = json.dumps({"question": case.question * case.repeat}).encode()
+            payload = {"question": case.question * case.repeat}
+            if case.conversation_of is not None:
+                payload["conversation_id"] = await self._open(load_personas()[case.conversation_of])
+            content = json.dumps(payload).encode()
         response = await self.client.post("/chat", content=content, headers=headers)
         try:
             body = response.json()
         except ValueError:
             body = None
         return response.status_code, body
+
+    async def _open(self, owner: Persona) -> str | None:
+        """Opens a conversation as `owner` and returns its ID (D-011: the case then tries it)."""
+        token = self.token(owner, "valid")
+        response = await self.client.post(
+            "/chat", json={"question": OPENER}, headers={"authorization": f"Bearer {token}"}
+        )
+        return response.json().get("conversation_id")

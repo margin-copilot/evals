@@ -60,6 +60,7 @@ uv run live/ask.py north.mgr "What was dairy margin in the North in October 2026
 uv run live/identity_hop.py
 uv run live/rls_check.py
 uv run live/proposals_check.py
+uv run live/conversation_check.py
 ```
 
 `proposals_check.py` (milestone 6) drafts two proposals through `/chat` (north.mgr: UHT milk to 7.25 MAD; center.mgr: olive oil +7%, which needs the director), then calls proposals-api as each persona. It checks that:
@@ -69,6 +70,10 @@ uv run live/proposals_check.py
 - north.mgr approves the North draft once (the second time is 409), and the director approves the olive oil draft.
 
 It needs `PROPOSALS_API_URL` and `PROPOSALS_SCOPE` in `.env` (printed by `infra/scripts/spike-env.sh`).
+
+`conversation_check.py` (milestone 7) asks north.mgr's dairy-margin question (21.3%), then the follow-up "And in September 2026?" in the same conversation (24.1%), then sends south.mgr in with north.mgr's conversation ID, which must be 404 `conversation not found`.
+
+A case with `conversation_of` (A-21) first opens a conversation as that persona, then asks its question as its own persona with that conversation's ID, in CI and live.
 
 ## License
 

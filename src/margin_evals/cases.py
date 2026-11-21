@@ -36,6 +36,11 @@ class Persona:
     groups: tuple[str, ...]
 
 
+# The first turn a case with conversation_of opens, as that persona (D-011: the conversation the
+# case then tries to continue as someone else).
+OPENER = "What was North dairy margin in October 2026?"
+
+
 @dataclass(frozen=True)
 class Expect:
     status: int = 200
@@ -62,6 +67,7 @@ class Case:
     raw_body: str | None = None
     repeat: int = 1
     suite: str = "ci"
+    conversation_of: str | None = None  # the runner opens a conversation as this persona first
     note: str = ""
 
 
@@ -110,6 +116,10 @@ def _case(raw: dict, personas: dict[str, Persona], source: str) -> Case:
         problems.append(f"token {case.token!r}")
     if case.suite not in SUITES:
         problems.append(f"suite {case.suite!r}")
+    if case.conversation_of is not None and (
+        case.conversation_of not in personas or case.token != "valid" or case.raw_body is not None
+    ):
+        problems.append(f"conversation_of {case.conversation_of!r} (a persona, with a valid token)")
     if case.suite == "live" and (case.token != "valid" or case.raw_body is not None):
         problems.append("token or raw_body (a live case signs in for real and asks a question)")
     if expect.refusal is not None and expect.refusal not in REFUSALS:
@@ -141,7 +151,7 @@ def _is_int(value: object) -> bool:
 def _check_types(raw: dict, expect_raw: dict, where: str) -> None:
     """Rejects values that would silently empty a check (a string read as a list, "a|" etc.)."""
     problems = []
-    for name in ("id", "kind", "persona", "question", "token", "suite", "note"):
+    for name in ("id", "kind", "persona", "question", "token", "suite", "conversation_of", "note"):
         if name in raw and not isinstance(raw[name], str):
             problems.append(f"{name} must be a string")
     if not _is_int(raw.get("milestone")):

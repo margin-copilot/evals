@@ -53,11 +53,16 @@ def sign_in(env: dict[str, str], persona: str, scope: str | None = None) -> str:
     return result["access_token"]
 
 
-def chat(env: dict[str, str], token: str, question: str) -> tuple[int, dict | None]:
+def chat(
+    env: dict[str, str], token: str, question: str, conversation_id: str | None = None
+) -> tuple[int, dict | None]:
+    payload = {"question": question}
+    if conversation_id is not None:
+        payload["conversation_id"] = conversation_id
     try:
         response = httpx.post(
             f"{env['ORCHESTRATOR_URL']}/chat",
-            json={"question": question},
+            json=payload,
             headers={"Authorization": f"Bearer {token}"},
             timeout=TIMEOUT,
         )

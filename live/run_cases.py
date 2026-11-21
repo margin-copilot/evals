@@ -12,7 +12,7 @@ import sys
 from itertools import groupby
 
 from margin_evals import CURRENT_MILESTONE
-from margin_evals.cases import load_cases
+from margin_evals.cases import OPENER, load_cases
 from margin_evals.judge import judge
 from margin_evals.live import chat, load_env, sign_in
 
@@ -38,7 +38,11 @@ def main(args: list[str]) -> int:
         print(f"\nSign in as {persona} in the browser.")
         token = sign_in(env, persona)
         for case in group:
-            status, body = chat(env, token, case.question)
+            conversation_id = None
+            if case.conversation_of is not None:  # open a conversation as someone else first
+                _, opened = chat(env, sign_in(env, case.conversation_of), OPENER)
+                conversation_id = (opened or {}).get("conversation_id")
+            status, body = chat(env, token, case.question, conversation_id)
             problems = judge(case, status, body)
             failed += [case.id] if problems else []
             print(f"{'FAIL' if problems else 'PASS'}  {case.id}  {'; '.join(problems)}")

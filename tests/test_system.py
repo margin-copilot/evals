@@ -24,6 +24,7 @@ def ask(question="Who am I?", **fields):
 
 async def test_identity_crosses_the_hop_in_process():
     status, body = await System().ask(ask(), NORTH)
+    assert len(body.pop("conversation_id")) == 32
     assert (status, body) == (
         200,
         {
@@ -86,3 +87,12 @@ def test_other_tenant_token_is_signed_with_the_same_key():
     claims = jwt.decode(token, public_key, algorithms=["RS256"], audience=ORCHESTRATOR)
     assert claims["tid"] != system.issuer.tenant_id
     assert claims["iss"] != system.issuer.issuer
+
+
+async def test_the_hijack_case_passes_on_fakes():
+    from margin_evals.cases import load_cases, load_personas
+    from margin_evals.judge import judge
+
+    case = next(c for c in load_cases() if c.id == "A-21")
+    status, body = await System().ask(case, load_personas()[case.persona])
+    assert (status, judge(case, status, body)) == (404, [])

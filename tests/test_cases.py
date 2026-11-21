@@ -210,3 +210,30 @@ def test_g_p01_accepts_the_plain_allowed_verdict():
 
 def test_g_p01_never_passes_a_not_allowed_verdict():
     assert _p01(G_P01_WRONG) != []
+
+
+def test_milestone_7_cases_are_live():
+    milestone_7 = {c.id: c.suite for c in load_cases() if c.milestone == 7}
+    live = {"G-C01", "G-C02", "G-C03", "G-C04", "S-01", "S-02", "S-03", "S-04", "A-15", "A-21"}
+    assert milestone_7 == dict.fromkeys(live, "live")
+
+
+def test_a_14_waits_for_the_fixture():
+    assert _project_case("A-14").milestone == 11
+
+
+def test_g_c01_expects_only_figures_a_tool_can_return():
+    assert _project_case("G-C01").expect.contains == ("UHT", "6%", "4%")
+
+
+@pytest.mark.parametrize(
+    ("fields", "message"),
+    [
+        ({"conversation_of": '"nobody"'}, "invalid conversation_of"),
+        ({"conversation_of": "1"}, "conversation_of must be a string"),
+        ({"conversation_of": '"north.mgr"', "token": '"expired"'}, "invalid conversation_of"),
+    ],
+)
+def test_conversation_of_must_be_a_persona_with_a_valid_token(tmp_path, fields, message):
+    with pytest.raises(CaseError, match=message):
+        load_cases(write(tmp_path, case(**fields)))
