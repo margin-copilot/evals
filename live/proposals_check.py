@@ -38,9 +38,12 @@ def main() -> int:
         except ValueError:
             return response.status_code, None
 
-    def pending(persona: str) -> list[dict]:
+    def pending(persona: str) -> list[dict] | None:
+        """The persona's pending list, or None when the call failed (a failure never passes)."""
         status, body = api(persona, "GET", "/proposals")
-        return body.get("proposals", []) if status == 200 and isinstance(body, dict) else []
+        if status != 200 or not isinstance(body, dict):
+            return None
+        return body.get("proposals", [])
 
     status, body = chat(env, sign_in(env, "north.mgr"), UHT)
     answer = (body or {}).get("answer", "")
@@ -51,7 +54,7 @@ def main() -> int:
         "center.mgr drafts olive oil (director-level)", status == 200 and "director" in answer, body
     )
 
-    north = pending("north.mgr")  # newest first
+    north = pending("north.mgr") or []  # newest first; empty fails the first check
     uht = next((p for p in north if p["sku"] == "DAI-002" and p["new_price"] == "7.25"), None)
     check(
         "north.mgr's list holds only North proposals",
@@ -60,9 +63,11 @@ def main() -> int:
     check("north.mgr's list holds the new UHT draft", uht is not None)
     south = pending("south.mgr")
     check(
-        "south.mgr's list holds no North or Center proposal", all(p["region"] == "S" for p in south)
+        "south.mgr's list holds no North or Center proposal",
+        south is not None and all(p["region"] == "S" for p in south),
+        "the listing call failed" if south is None else south,
     )
-    everything = pending("pricing.director")
+    everything = pending("pricing.director") or []
     olive = next((p for p in everything if p["sku"] == "GRO-008" and p["region"] == "C"), None)
     ids = {p["id"] for p in everything}
     check(
