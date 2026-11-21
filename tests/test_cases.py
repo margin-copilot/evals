@@ -215,6 +215,7 @@ def test_g_p01_never_passes_a_not_allowed_verdict():
 def test_milestone_7_cases_are_live():
     milestone_7 = {c.id: c.suite for c in load_cases() if c.milestone == 7}
     live = {"G-C01", "G-C02", "G-C03", "G-C04", "S-01", "S-02", "S-03", "S-04", "A-15", "A-21"}
+    live |= {"G-V01"}
     assert milestone_7 == dict.fromkeys(live, "live")
 
 

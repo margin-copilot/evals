@@ -96,3 +96,11 @@ async def test_the_hijack_case_passes_on_fakes():
     case = next(c for c in load_cases() if c.id == "A-21")
     status, body = await System().ask(case, load_personas()[case.persona])
     assert (status, judge(case, status, body)) == (404, [])
+
+
+async def test_a_case_can_continue_its_own_conversation_on_fakes():
+    from margin_evals.cases import load_cases, load_personas
+
+    case = next(c for c in load_cases() if c.id == "G-V01")
+    status, body = await System().ask(case, load_personas()[case.persona])
+    assert status == 200 and len(body["conversation_id"]) == 32

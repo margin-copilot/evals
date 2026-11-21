@@ -445,3 +445,16 @@ persona = "north.mgr"
 question = "What is the best stock to buy this week?"
 expect.refusal = "out_of_scope"
 expect.no_agents = true
+
+# --- Conversations (milestone 7): a follow-up continues the owner's own conversation (D-041).
+[[case]]
+id = "G-V01"
+kind = "golden"
+milestone = 7
+suite = "live"
+persona = "north.mgr"
+conversation_of = "north.mgr"
+question = "And in September 2026?"
+expect.contains = ["24.1"]
+expect.agents = ["data-agent"]
+note = "Follows the opener (North dairy margin, October 2026: 21.3%). The positive side of A-21."
