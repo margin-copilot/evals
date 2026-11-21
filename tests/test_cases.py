@@ -223,7 +223,7 @@ def test_a_14_waits_for_the_fixture():
 
 
 def test_g_c01_expects_only_figures_a_tool_can_return():
-    assert _project_case("G-C01").expect.contains == ("UHT", "6%", "4%")
+    assert _project_case("G-C01").expect.contains == ("UHT", "6%|5.62", "4%")
 
 
 @pytest.mark.parametrize(

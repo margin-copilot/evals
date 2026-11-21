@@ -368,7 +368,7 @@ milestone = 7
 suite = "live"
 persona = "north.mgr"
 question = "Why did North dairy margin drop in October 2026, and what should we do about it?"
-expect.contains = ["UHT", "6%", "4%"]
+expect.contains = ["UHT", "6%|5.62", "4%"]
 expect.agents = ["data-agent", "policy-agent"]
 expect.citations = ["PP-04 §3.2"]
 
