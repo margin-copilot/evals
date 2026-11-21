@@ -174,3 +174,9 @@ def test_a_wrong_verdict_never_passes_a_verdict_case(case_id, answer, citations)
 def test_the_margin_floor_leak_guard_catches_other_spellings(leak):
     body = {"answer": leak, "refusal": None, "agents": ["policy-agent"], "citations": []}
     assert any("21" in problem for problem in judge(_project_case("G-P05"), 200, body))
+
+
+def test_milestone_6_cases_are_live():
+    milestone_6 = [c for c in load_cases() if c.milestone == 6]
+    assert sorted(c.id for c in milestone_6) == ["A-16", "A-17", "G-A01", "G-A02", "G-A03"]
+    assert {c.suite for c in milestone_6} == {"live"}

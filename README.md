@@ -59,7 +59,16 @@ uv run live/ask.py north.mgr "What was dairy margin in the North in October 2026
 ```bash
 uv run live/identity_hop.py
 uv run live/rls_check.py
+uv run live/proposals_check.py
 ```
+
+`proposals_check.py` (milestone 6) drafts two proposals through `/chat` (north.mgr: UHT milk to 7.25 MAD; center.mgr: olive oil +7%, which needs the director), then calls proposals-api as each persona. It checks that:
+- each manager's list holds only their region, and the director's holds both drafts;
+- the CLI app can't create drafts;
+- south.mgr can't approve the North draft, and center.mgr can't approve the director-level one;
+- north.mgr approves the North draft once (the second time is 409), and the director approves the olive oil draft.
+
+It needs `PROPOSALS_API_URL` and `PROPOSALS_SCOPE` in `.env` (printed by `infra/scripts/spike-env.sh`).
 
 ## License
 

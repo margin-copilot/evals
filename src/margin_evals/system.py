@@ -71,7 +71,11 @@ class System:
             self.obo.exchange,
             httpx.AsyncClient(transport=httpx.ASGITransport(app=data_agent_app)),
         )
-        agents = {"data-agent": data_agent, "policy-agent": FakeAgent("policy-agent")}
+        agents = {
+            "data-agent": data_agent,
+            "policy-agent": FakeAgent("policy-agent"),
+            "action-agent": FakeAgent("action-agent"),
+        }
         app = create_http_app(FakeRouter(), agents, user_tokens)
         self.client = httpx.AsyncClient(
             transport=httpx.ASGITransport(app=app), base_url="http://orchestrator"

@@ -52,3 +52,19 @@ def test_a_dropped_connection_fails_the_case_instead_of_the_run(monkeypatch):
     monkeypatch.setattr(live.httpx, "post", drop)
     env = {**ENV, "ORCHESTRATOR_URL": "https://orchestrator.example"}
     assert live.chat(env, "token", "question") == (0, {"error": "no response: RemoteProtocolError"})
+
+
+def test_sign_in_asks_for_the_scope_given(monkeypatch):
+    app = FakeApp([{"username": "north.mgr@x.example"}])
+    asked = []
+    original = app.acquire_token_silent
+
+    def silent(scopes, account):
+        asked.append(scopes)
+        return original(scopes, account)
+
+    app.acquire_token_silent = silent
+    monkeypatch.setattr(live, "client", lambda env: app)
+    live.sign_in(ENV, "north.mgr")
+    live.sign_in(ENV, "north.mgr", scope="api://p/access_as_user")
+    assert asked == [["api://o/access_as_user"], ["api://p/access_as_user"]]

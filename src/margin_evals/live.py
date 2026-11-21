@@ -33,11 +33,11 @@ def client(env: dict[str, str]) -> msal.PublicClientApplication:
     )
 
 
-def sign_in(env: dict[str, str], persona: str) -> str:
+def sign_in(env: dict[str, str], persona: str, scope: str | None = None) -> str:
     """Silent when this persona signed in before; otherwise the browser opens, and the account
-    picked must be the persona, or the results would lie."""
+    picked must be the persona, or the results would lie. `scope` defaults to the orchestrator's."""
     app = client(env)
-    scopes = [env["ORCHESTRATOR_SCOPE"]]
+    scopes = [scope or env["ORCHESTRATOR_SCOPE"]]
     for account in app.get_accounts():
         if account["username"].split("@")[0].lower() == persona:
             result = app.acquire_token_silent(scopes, account=account)
