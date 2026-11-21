@@ -200,7 +200,7 @@ milestone = 5
 suite = "live"
 persona = "north.mgr"
 question = "Can I raise UHT milk 1 L by 3.6% in the North?"
-expect.contains = ["4%", "yes|within"]
+expect.contains = ["4%", "yes|within|is allowed"]
 expect.citations = ["PP-04 §3.2", "PP-02 §2", "PP-04 §2.2"]
 expect.agents = ["policy-agent"]
 

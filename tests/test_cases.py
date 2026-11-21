@@ -180,3 +180,33 @@ def test_milestone_6_cases_are_live():
     milestone_6 = [c for c in load_cases() if c.milestone == 6]
     assert sorted(c.id for c in milestone_6) == ["A-16", "A-17", "G-A01", "G-A02", "G-A03"]
     assert {c.suite for c in milestone_6} == {"live"}
+
+
+G_P01_RIGHT = (
+    "Allowed: a 3.6% permanent increase on UHT milk 1 L in the North is allowed. UHT milk is "
+    "Tier B and the regional pricing manager may apply increases up to 4% without pricing "
+    "director approval (PP-02 §2; PP-04 §3.2). You must also respect the one-increase-per-30-day "
+    "rule (PP-04 §2.2)."
+)
+G_P01_WRONG = (
+    "Not allowed: a 3.6% increase on UHT milk 1 L in the North is not allowed; Tier B increases "
+    "over 4% need the director (PP-02 §2; PP-04 §3.2; PP-04 §2.2)."
+)
+
+
+def _p01(answer):
+    body = {
+        "answer": answer,
+        "refusal": None,
+        "agents": ["policy-agent"],
+        "citations": ["PP-04 §3.2", "PP-02 §2", "PP-04 §2.2"],
+    }
+    return judge(_project_case("G-P01"), 200, body)
+
+
+def test_g_p01_accepts_the_plain_allowed_verdict():
+    assert _p01(G_P01_RIGHT) == []
+
+
+def test_g_p01_never_passes_a_not_allowed_verdict():
+    assert _p01(G_P01_WRONG) != []
