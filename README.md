@@ -75,6 +75,8 @@ It needs `PROPOSALS_API_URL` and `PROPOSALS_SCOPE` in `.env` (printed by `infra/
 
 A case with `conversation_of` (A-21) first opens a conversation as that persona, then asks its question as its own persona with that conversation's ID, in CI and live.
 
+`clear_drafts.py` rejects every pending proposal as pricing.director: the test drafts the live suite and the approval check leave behind. Run it before a demo of the approvals screen.
+
 ## License
 
 MIT. See [LICENSE](LICENSE).
