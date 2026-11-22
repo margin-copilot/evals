@@ -426,7 +426,7 @@ wheels = [
 [[package]]
 name = "data-agent"
 version = "0.2.0"
-source = { git = "https://github.com/margin-copilot/data-agent?tag=v0.2.7#0d95cf189361469d647226c0e4fdc78a31d3f615" }
+source = { git = "https://github.com/margin-copilot/data-agent?tag=v0.2.8#a3dc990931ff3aaeb4571d6b836b5cee648f82ee" }
 dependencies = [
     { name = "a2a-sdk", extra = ["http-server"] },
     { name = "agent-framework-core" },
@@ -682,7 +682,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "data-agent", git = "https://github.com/margin-copilot/data-agent?tag=v0.2.7" },
+    { name = "data-agent", git = "https://github.com/margin-copilot/data-agent?tag=v0.2.8" },
     { name = "httpx", specifier = "==0.28.1" },
     { name = "margin-copilot-shared", git = "https://github.com/margin-copilot/shared?tag=v0.3.0" },
     { name = "msal", specifier = "==1.39.0" },
