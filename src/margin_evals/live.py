@@ -7,6 +7,8 @@ import httpx
 import msal
 from msal_extensions import PersistedTokenCache, build_encrypted_persistence
 
+from margin_evals.telemetry import traceparent
+
 ENV_FILE = pathlib.Path(__file__).resolve().parents[2] / ".env"
 # Marker file for the test users' tokens, which the OS keeps encrypted (macOS: Keychain item
 # "msal-extensions"; forget them with `security delete-generic-password -s msal-extensions`).
@@ -54,17 +56,22 @@ def sign_in(env: dict[str, str], persona: str, scope: str | None = None) -> str:
 
 
 def chat(
-    env: dict[str, str], token: str, question: str, conversation_id: str | None = None
+    env: dict[str, str],
+    token: str,
+    question: str,
+    conversation_id: str | None = None,
+    trace_id: str | None = None,
 ) -> tuple[int, dict | None]:
+    """`trace_id` becomes the turn's trace (a `traceparent` header), for its time and cost."""
     payload = {"question": question}
     if conversation_id is not None:
         payload["conversation_id"] = conversation_id
+    headers = {"Authorization": f"Bearer {token}"}
+    if trace_id is not None:
+        headers["traceparent"] = traceparent(trace_id)
     try:
         response = httpx.post(
-            f"{env['ORCHESTRATOR_URL']}/chat",
-            json=payload,
-            headers={"Authorization": f"Bearer {token}"},
-            timeout=TIMEOUT,
+            f"{env['ORCHESTRATOR_URL']}/chat", json=payload, headers=headers, timeout=TIMEOUT
         )
     except httpx.TransportError as error:  # judged as a failed case; the run goes on
         return 0, {"error": f"no response: {type(error).__name__}"}
