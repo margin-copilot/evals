@@ -2,7 +2,7 @@ import re
 
 import pytest
 
-from margin_evals.telemetry import new_trace_id, summarize, traceparent
+from margin_evals.telemetry import fetch_rows, new_trace_id, report, summarize, traceparent
 
 TRACE = "4bf92f3577b34da6a3ce929d0e0e4736"
 
@@ -98,3 +98,88 @@ def test_cached_input_is_priced_at_the_cached_rate():
     (cost,) = summarize(rows, input_price=0.25, output_price=2.0, cached_price=0.025).values()
     assert cost.input_tokens == 10000 and cost.cached_tokens == 8000
     assert cost.usd == pytest.approx(2000 / 1e6 * 0.25 + 8000 / 1e6 * 0.025 + 1000 / 1e6 * 2.0)
+
+
+class FakeResult:
+    def __init__(self, rows, partial=False):
+        table = type(
+            "Table",
+            (),
+            {
+                "columns": list(rows[0]) if rows else ["OperationId"],
+                "rows": [list(r.values()) for r in rows],
+            },
+        )()
+        if partial:
+            self.partial_data = [table]
+        else:
+            self.tables = [table]
+
+
+class FakeClient:
+    def __init__(self, *results):
+        self.results, self.queries = list(results), 0
+
+    def query_workspace(self, workspace_id, query, timespan):
+        self.queries += 1
+        return self.results.pop(0) if len(self.results) > 1 else self.results[0]
+
+
+def test_polling_waits_one_more_round_for_the_agents_rows():
+    turn_only = [r for r in COMPOSED_TURN if r["AppRoleName"] == "orchestrator"]
+    client = FakeClient(FakeResult(turn_only), FakeResult(COMPOSED_TURN))
+    rows = fetch_rows("ws", [TRACE], None, client=client, sleep=lambda s: None)
+    assert client.queries == 2 and len(rows) == len(COMPOSED_TURN)
+
+
+def test_a_partial_result_is_read():
+    client = FakeClient(FakeResult(COMPOSED_TURN, partial=True))
+    rows = fetch_rows("ws", [TRACE], None, client=client, sleep=lambda s: None)
+    assert len(rows) == len(COMPOSED_TURN)
+
+
+def test_a_failed_trace_query_never_fails_the_run():
+    def broken(*args, **kwargs):
+        raise RuntimeError("az login expired")
+
+    lines = report(
+        {"MONITOR_WORKSPACE_ID": "ws"}, {"G-D01": TRACE}, fetch=broken, credential=object()
+    )
+    assert lines == ["no time and cost report: RuntimeError"]
+
+
+def test_an_unset_cached_price_bills_cached_input_as_input_and_says_so():
+    rows = [
+        row("AppRequests", "POST", "orchestrator", 100.0),
+        row(
+            "AppDependencies",
+            "chat gpt-5-mini",
+            "policy-agent",
+            50.0,
+            **tokens(10000, 1000),
+            **{"gen_ai.usage.cache_read.input_tokens": "8000"},
+        ),
+    ]
+    env = {
+        "MONITOR_WORKSPACE_ID": "ws",
+        "MODEL_INPUT_USD_PER_MTOK": "0.25",
+        "MODEL_OUTPUT_USD_PER_MTOK": "2.0",
+    }
+    lines = report(env, {"G-P01": TRACE}, fetch=lambda *a, **k: rows, credential=object())
+    assert any("MODEL_CACHED_INPUT_USD_PER_MTOK" in line for line in lines)
+    assert any(
+        line.startswith("G-P01") and line.endswith(f"{10000 / 1e6 * 0.25 + 1000 / 1e6 * 2.0:.4f}")
+        for line in lines
+    )
+
+
+def test_unset_prices_are_named_not_shown_as_free():
+    lines = report(
+        {"MONITOR_WORKSPACE_ID": "ws"},
+        {"G-D01": TRACE},
+        fetch=lambda *a, **k: COMPOSED_TURN,
+        credential=object(),
+    )
+    assert any(
+        "MODEL_INPUT_USD_PER_MTOK" in line and "MODEL_OUTPUT_USD_PER_MTOK" in line for line in lines
+    )

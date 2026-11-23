@@ -16,7 +16,7 @@ from margin_evals import CURRENT_MILESTONE
 from margin_evals.cases import OPENER, load_cases
 from margin_evals.judge import judge
 from margin_evals.live import chat, load_env, sign_in
-from margin_evals.telemetry import fetch_rows, new_trace_id, summarize
+from margin_evals.telemetry import new_trace_id, report
 
 
 def main(args: list[str]) -> int:
@@ -54,63 +54,16 @@ def main(args: list[str]) -> int:
         f"\n{len(cases) - len(failed)}/{len(cases)} passed"
         + (f"; failed: {' '.join(failed)}" if failed else "")
     )
-    report(env, traces)
+    print_report(env, traces)
     return 1 if failed else 0
 
 
-COLUMNS = (
-    "case",
-    "total s",
-    "route",
-    "data",
-    "policy",
-    "action",
-    "compose",
-    "calls",
-    "in",
-    "out",
-    "$",
-)
-ROW = "{:8} {:>7} {:>6} {:>6} {:>6} {:>6} {:>7} {:>5} {:>7} {:>6} {:>8}"
-STEPS = ("orchestrator.route", "agent:data-agent", "agent:policy-agent", "agent:action-agent")
-
-
-def report(env: dict[str, str], traces: dict[str, str]) -> None:
-    """Time and cost per question. A missing trace is reported, not judged: answers are the gate."""
+def print_report(env: dict[str, str], traces: dict[str, str]) -> None:
     if not env.get("MONITOR_WORKSPACE_ID"):
         print("\nno time and cost report: set MONITOR_WORKSPACE_ID (infra scripts/spike-env.sh)")
         return
-    from azure.identity import AzureCliCredential  # the owner's az login reads the workspace
-
     print("\nWaiting for the traces (ingestion takes a few minutes)...")
-    rows = fetch_rows(env["MONITOR_WORKSPACE_ID"], list(traces.values()), AzureCliCredential())
-    kinds = ("INPUT", "OUTPUT", "CACHED_INPUT")
-    prices = [float(env.get(f"MODEL_{kind}_USD_PER_MTOK") or 0) for kind in kinds]
-    costs = summarize(rows, *prices)
-    print("\n" + ROW.format(*COLUMNS))
-    for case_id, trace_id in traces.items():
-        if (cost := costs.get(trace_id)) is not None:
-            seconds = [
-                cost.steps.get(name, 0.0) / 1000 for name in (*STEPS, "orchestrator.compose")
-            ]
-            print(
-                ROW.format(
-                    case_id,
-                    f"{cost.total_ms / 1000:.1f}",
-                    *(f"{value:.1f}" for value in seconds),
-                    cost.model_calls,
-                    cost.input_tokens,
-                    cost.output_tokens,
-                    f"{cost.usd:.4f}",
-                )
-            )
-    if costs:
-        total = sum(c.usd for c in costs.values())
-        average = sum(c.total_ms for c in costs.values()) / len(costs) / 1000
-        each = total / len(costs)
-        print(f"\n{len(costs)} questions: average {average:.1f} s, ${each:.4f} each, ${total:.4f}")
-    if missing := [case_id for case_id, trace_id in traces.items() if trace_id not in costs]:
-        print(f"missing: {' '.join(missing)}")
+    print("\n" + "\n".join(report(env, traces)))
 
 
 if __name__ == "__main__":
