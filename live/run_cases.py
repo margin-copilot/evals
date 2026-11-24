@@ -41,8 +41,9 @@ def main(args: list[str]) -> int:
         sorted(cases, key=lambda c: (c.persona, c.id)), lambda c: c.persona
     ):
         print(f"\nSign in as {persona} in the browser.")
-        token = sign_in(env, persona)
+        sign_in(env, persona)  # the browser opens here, once per user, if it must
         for case in group:
+            token = sign_in(env, persona)  # silent; renewed near expiry (a group outlasts one)
             conversation_id = None
             if case.conversation_of is not None:  # open a conversation as someone else first
                 _, opened = chat(env, sign_in(env, case.conversation_of), OPENER)
