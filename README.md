@@ -41,9 +41,10 @@ Cases with `suite = "live"` need the real model and data, so CI skips them (D-03
 grep -E '^SQL_(SERVER|DATABASE)=' ../data/.env >> .env                # for rls_check.py
 uv run live/run_cases.py --milestone 4    # live cases up to milestone 4; prints every answer
 uv run live/ask.py north.mgr "What was dairy margin in the North in October 2026?"
+uv run live/run_cases.py --stream         # the same cases on the streamed path the web app uses (D-045)
 ```
 
-`run_cases.py` judges each answer like CI does. Each test user signs in through the browser once (the terminal names the user to pick); the tokens are then kept encrypted in the OS keychain (macOS: the Keychain item `msal-extensions`; forget them with `security delete-generic-password -s msal-extensions`), so later runs are silent. `ask.py` asks one question as one user and prints the answer, the refusal and the agents called.
+`run_cases.py` judges each answer like CI does. Each test user signs in through the browser once (the terminal names the user to pick); the tokens are then kept encrypted in the OS keychain (macOS: the Keychain item `msal-extensions`; forget them with `security delete-generic-password -s msal-extensions`), so later runs are silent. `ask.py` asks one question as one user and prints the answer, the refusal and the agents called. With `--stream`, both ask for the server-sent events the web app reads: `run_cases.py` also checks their order (steps, at most one lead, one `done` or `error` last) and prints when the first step, the lead and the answer arrived; `ask.py` prints each event with its time.
 
 **Time and cost per question** (D-043): each case sends its own trace ID (`traceparent`); after the pass/fail line, `run_cases.py` reads those traces from the Log Analytics workspace with your `az login` and prints per question the total time, the router, each agent and the composer, model calls, tokens and cost, then the average and the total. Settings in `.env`: `MONITOR_WORKSPACE_ID` (the infra repo's `scripts/spike-env.sh` writes it) and `MODEL_INPUT_USD_PER_MTOK`, `MODEL_CACHED_INPUT_USD_PER_MTOK`, `MODEL_OUTPUT_USD_PER_MTOK` (the meters Cost Management bills). Ingestion takes a few minutes; a report that can't be read is printed as such and never fails a run.
 

@@ -3,6 +3,7 @@
     uv run live/run_cases.py                 # cases up to CURRENT_MILESTONE
     uv run live/run_cases.py --milestone 4   # before bumping CURRENT_MILESTONE
     uv run live/run_cases.py G-D01 A-10      # just these cases
+    uv run live/run_cases.py --stream        # on the streamed path the web app uses (D-045)
 
 The browser opens once per test user; sign in as the user it names. Prints every answer so the
 case wording can be reviewed against it (D-029), then each question's time and cost, read from its
@@ -14,14 +15,16 @@ from itertools import groupby
 
 from margin_evals import CURRENT_MILESTONE
 from margin_evals.cases import OPENER, load_cases
-from margin_evals.judge import judge
-from margin_evals.live import chat, load_env, sign_in
+from margin_evals.judge import judge, stream_problems
+from margin_evals.live import chat, chat_stream, load_env, sign_in, stream_times
 from margin_evals.telemetry import new_trace_id, report
 
 
 def main(args: list[str]) -> int:
     sys.stdout.reconfigure(line_buffering=True)  # show progress through `| tee` too
     milestone = CURRENT_MILESTONE
+    stream = "--stream" in args
+    args = [arg for arg in args if arg != "--stream"]
     if args[:1] == ["--milestone"]:
         milestone, args = int(args[1]), args[2:]
     cases = [
@@ -45,11 +48,19 @@ def main(args: list[str]) -> int:
                 _, opened = chat(env, sign_in(env, case.conversation_of), OPENER)
                 conversation_id = (opened or {}).get("conversation_id")
             traces[case.id] = new_trace_id()
-            status, body = chat(env, token, case.question, conversation_id, traces[case.id])
-            problems = judge(case, status, body)
+            if stream:
+                status, body, events = chat_stream(
+                    env, token, case.question, conversation_id, traces[case.id]
+                )
+                problems = judge(case, status, body) + stream_problems([e for e, _ in events])
+            else:
+                status, body = chat(env, token, case.question, conversation_id, traces[case.id])
+                problems = judge(case, status, body)
             failed += [case.id] if problems else []
             print(f"{'FAIL' if problems else 'PASS'}  {case.id}  {'; '.join(problems)}")
             print(f"      {status} {body}")
+            if stream:
+                print(f"      stream: {stream_times(events)}")
     print(
         f"\n{len(cases) - len(failed)}/{len(cases)} passed"
         + (f"; failed: {' '.join(failed)}" if failed else "")

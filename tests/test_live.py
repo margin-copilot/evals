@@ -1,5 +1,6 @@
 """Live sign-in: a remembered persona signs in silently; anyone else goes to the browser."""
 
+import httpx
 import pytest
 
 from margin_evals import live
@@ -68,3 +69,37 @@ def test_sign_in_asks_for_the_scope_given(monkeypatch):
     live.sign_in(ENV, "north.mgr")
     live.sign_in(ENV, "north.mgr", scope="api://p/access_as_user")
     assert asked == [["api://o/access_as_user"], ["api://p/access_as_user"]]
+
+
+def test_sse_events_reads_split_and_commented_streams():
+    lines = [
+        ": ping - 2026-11-24 12:00:00",
+        "",
+        "event: step",
+        'data: {"step": "route"}',
+        "",
+        "event: done",
+        "data: {}",
+        "",
+        "event: step",
+        'data: {"step": "cut off"}',
+    ]
+    assert list(live.sse_events(lines)) == [("step", '{"step": "route"}'), ("done", "{}")]
+
+
+def test_chat_stream_reports_an_error_events_status(monkeypatch):
+    body = (
+        b'event: step\r\ndata: {"step": "condense"}\r\n\r\n: ping\r\n\r\n'
+        b'event: error\r\ndata: {"error": "conversation not found", "status": 404}\r\n\r\n'
+    )
+
+    def handler(request):
+        assert request.headers["accept"] == "text/event-stream"
+        headers = {"content-type": "text/event-stream; charset=utf-8"}
+        return httpx.Response(200, content=body, headers=headers)
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    monkeypatch.setattr(live.httpx, "stream", lambda m, url, **kw: client.stream(m, url, **kw))
+    status, reply, events = live.chat_stream({"ORCHESTRATOR_URL": "http://o"}, "t", "q", "a" * 32)
+    assert (status, reply) == (404, {"error": "conversation not found", "status": 404})
+    assert [event for event, _ in events] == ["step", "error"]

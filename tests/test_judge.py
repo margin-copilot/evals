@@ -1,7 +1,7 @@
 import pytest
 
 from margin_evals.cases import Case, Expect
-from margin_evals.judge import CaseFailed, SystemFault, judge, verdict
+from margin_evals.judge import CaseFailed, SystemFault, judge, stream_problems, verdict
 
 
 def case(**expect):
@@ -151,3 +151,18 @@ def test_error_reason_is_checked():
         case(status=403, error="calling app not allowed"), 403, {"error": "missing scope"}
     ) == ["error 'missing scope', expected 'calling app not allowed'"]
     assert judge(case(status=403, error="missing scope"), 403, {"error": "missing scope"}) == []
+
+
+def test_a_stream_ending_in_done_after_a_step_is_fine():
+    assert stream_problems(["step", "step", "lead", "step", "done"]) == []
+    assert stream_problems(["step", "error"]) == []
+
+
+def test_a_stream_without_done_or_error_is_a_problem():
+    assert stream_problems(["step", "lead"]) == ["stream ended without done or error"]
+    assert stream_problems(["done"]) == ["no step before the answer"]
+    assert stream_problems(["step", "done", "step"]) == ["events after the answer"]
+
+
+def test_two_leads_are_a_problem():
+    assert stream_problems(["step", "lead", "lead", "done"]) == ["2 lead events"]

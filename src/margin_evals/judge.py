@@ -1,6 +1,7 @@
 """Compares one chat API response with a case's expectations."""
 
 import re
+from collections.abc import Sequence
 from decimal import Decimal
 
 from margin_evals.cases import Case
@@ -85,4 +86,20 @@ def judge(case: Case, status: int, body: dict | None) -> list[str]:
         problems.append(f"missing citations: {', '.join(missing)}")
     if forbidden := sorted(set(expect.not_citations) & citations):
         problems.append(f"forbidden citations: {', '.join(forbidden)}")
+    return problems
+
+
+def stream_problems(events: Sequence[str]) -> list[str]:
+    """A streamed turn's events in order (D-045): steps first, at most one lead, then one done or
+    error, last."""
+    terminal = [i for i, event in enumerate(events) if event in ("done", "error")]
+    if not terminal:
+        return ["stream ended without done or error"]
+    problems = []
+    if len(terminal) > 1 or terminal[0] != len(events) - 1:
+        problems.append("events after the answer")
+    if "step" not in events[: terminal[0]]:
+        problems.append("no step before the answer")
+    if (leads := list(events).count("lead")) > 1:
+        problems.append(f"{leads} lead events")
     return problems

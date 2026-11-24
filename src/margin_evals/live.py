@@ -1,7 +1,10 @@
 """The live suite's plumbing (D-019, D-033): settings from evals/.env, browser sign-ins remembered
-in the OS keychain, and POST /chat on the deployed orchestrator."""
+in the OS keychain, and POST /chat on the deployed orchestrator, as JSON or as a stream (D-045)."""
 
+import json
 import pathlib
+import time
+from collections.abc import Iterable, Iterator
 
 import httpx
 import msal
@@ -80,3 +83,68 @@ def chat(
     except ValueError:
         body = None
     return response.status_code, body if isinstance(body, dict) else None
+
+
+def sse_events(lines: Iterable[str]) -> Iterator[tuple[str, str]]:
+    """(event, data) from text/event-stream lines: a blank line ends an event, ":" lines are
+    comments (the server's pings), and an event cut off by the end is dropped."""
+    event, data = "message", []
+    for line in lines:
+        if not line:
+            if data:
+                yield event, "\n".join(data)
+            event, data = "message", []
+        elif not line.startswith(":"):
+            field, _, value = line.partition(":")
+            value = value.removeprefix(" ")
+            if field == "event":
+                event = value
+            elif field == "data":
+                data.append(value)
+
+
+def chat_stream(
+    env: dict[str, str],
+    token: str,
+    question: str,
+    conversation_id: str | None = None,
+    trace_id: str | None = None,
+) -> tuple[int, dict | None, list[tuple[str, float]]]:
+    """POST /chat as a stream: the status (an error event's own status), the `done` body or the
+    error, and each event with its seconds since the request."""
+    payload = {"question": question}
+    if conversation_id is not None:
+        payload["conversation_id"] = conversation_id
+    headers = {"Authorization": f"Bearer {token}", "Accept": "text/event-stream"}
+    if trace_id is not None:
+        headers["traceparent"] = traceparent(trace_id)
+    events: list[tuple[str, float]] = []
+    start = time.monotonic()
+    try:
+        url = f"{env['ORCHESTRATOR_URL']}/chat"
+        with httpx.stream("POST", url, json=payload, headers=headers, timeout=TIMEOUT) as response:
+            status, body = response.status_code, None
+            if not response.headers.get("content-type", "").startswith("text/event-stream"):
+                response.read()
+                try:
+                    body = response.json()
+                except ValueError:
+                    body = None
+                return status, body if isinstance(body, dict) else None, events
+            for event, data in sse_events(response.iter_lines()):
+                events.append((event, round(time.monotonic() - start, 1)))
+                if event in ("done", "error"):
+                    body = json.loads(data)
+                    if event == "error":
+                        status = body.get("status", status)
+            return status, body, events
+    except httpx.TransportError as error:  # judged as a failed case; the run goes on
+        return 0, {"error": f"no response: {type(error).__name__}"}, events
+
+
+def stream_times(events: list[tuple[str, float]]) -> str:
+    """first step 0.4 s, lead 21.3 s, done 44.0 s"""
+    first = {}
+    for event, at in events:
+        first.setdefault("first step" if event == "step" else event, at)
+    return ", ".join(f"{name} {at} s" for name, at in first.items())
