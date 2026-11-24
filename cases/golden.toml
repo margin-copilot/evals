@@ -390,7 +390,7 @@ milestone = 7
 suite = "live"
 persona = "center.mgr"
 question = "Was the olive oil price change in June 2026 within my limit?"
-expect.contains = ["7.0%|7%|80.25", "4%", "over|exceed|above|not within"]
+expect.contains = ["7.0%|7%|80.25", "4%", "over|exceed|above|not within|not allowed"]
 expect.agents = ["data-agent", "policy-agent"]
 expect.citations = ["PP-04 §3.2"]
 
