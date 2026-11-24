@@ -91,14 +91,14 @@ def judge(case: Case, status: int, body: dict | None) -> list[str]:
 
 def stream_problems(events: Sequence[str]) -> list[str]:
     """A streamed turn's events in order (D-045): steps first, at most one lead, then one done or
-    error, last."""
+    error, last. An error may come before any step (an unknown conversation fails first)."""
     terminal = [i for i, event in enumerate(events) if event in ("done", "error")]
     if not terminal:
         return ["stream ended without done or error"]
     problems = []
     if len(terminal) > 1 or terminal[0] != len(events) - 1:
         problems.append("events after the answer")
-    if "step" not in events[: terminal[0]]:
+    if events[terminal[0]] == "done" and "step" not in events[: terminal[0]]:
         problems.append("no step before the answer")
     if (leads := list(events).count("lead")) > 1:
         problems.append(f"{leads} lead events")

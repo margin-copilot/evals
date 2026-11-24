@@ -52,7 +52,9 @@ def main(args: list[str]) -> int:
                 status, body, events = chat_stream(
                     env, token, case.question, conversation_id, traces[case.id]
                 )
-                problems = judge(case, status, body) + stream_problems([e for e, _ in events])
+                problems = judge(case, status, body)
+                if events or status == 200:  # a refused token or body is JSON, never a stream
+                    problems += stream_problems([e for e, _ in events])
             else:
                 status, body = chat(env, token, case.question, conversation_id, traces[case.id])
                 problems = judge(case, status, body)

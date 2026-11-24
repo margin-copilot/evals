@@ -156,6 +156,7 @@ def test_error_reason_is_checked():
 def test_a_stream_ending_in_done_after_a_step_is_fine():
     assert stream_problems(["step", "step", "lead", "step", "done"]) == []
     assert stream_problems(["step", "error"]) == []
+    assert stream_problems(["error"]) == []  # an unknown conversation fails before any stage
 
 
 def test_a_stream_without_done_or_error_is_a_problem():
