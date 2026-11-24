@@ -22,6 +22,8 @@ def verdict(case: Case, status: int, body: dict | None) -> None:
         raise CaseFailed("; ".join(problems))
 
 
+# The data agent reports these in their own fields; in an answer they are a leak (seen live).
+INTERNAL_FIELD = re.compile(r"\b(regions_asked|found_data)\b")
 NUMBER = re.compile(r"(?<![\d.])(\d+(?:\.\d+)?)(%?)")
 DECIMAL_OR_PERCENT = re.compile(r"(\d+(?:\.\d+)?)(%?)")
 
@@ -68,6 +70,8 @@ def judge(case: Case, status: int, body: dict | None) -> list[str]:
         for alt in item.split("|"):
             if mentions(answer, alt):
                 problems.append(f"answer contains {alt.strip()!r}")
+    if leaked := sorted(set(INTERNAL_FIELD.findall(answer))):
+        problems.append(f"answer names an internal field: {', '.join(leaked)}")
     if expect.refusal is not None and refusal != expect.refusal:
         problems.append(f"refusal {refusal!r}, expected {expect.refusal!r}")
     if expect.refusal is None and expect.contains and refusal:

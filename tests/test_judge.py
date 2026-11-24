@@ -23,6 +23,14 @@ def test_matching_answer_has_no_problems():
     assert judge(case(contains=("21.3", "uht"), agents=("data-agent",)), 200, body) == []
 
 
+def test_an_answer_naming_the_data_agents_fields_fails_any_case():
+    # Seen live (G-C01, passed): the data agent's reported facts written into the answer.
+    body = {"answer": 'Margin fell to 21.3%. regions_asked: ["N"]. found_data: true.'}
+    assert judge(case(contains=("21.3",)), 200, body) == [
+        "answer names an internal field: found_data, regions_asked"
+    ]
+
+
 def test_alternatives_accept_either_wording():
     assert judge(case(contains=("6.0%|6%",)), 200, {"answer": "costs rose 6%"}) == []
 
