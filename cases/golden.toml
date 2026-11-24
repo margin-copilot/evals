@@ -147,6 +147,8 @@ suite = "live"
 persona = "pricing.director"
 question = "Which products sold most above normal during Ramadan 2026?"
 expect.contains = ["dates", "2.2|2.19"]
+# 2.7, 2.73, 2.8: dates over calendar days instead of the rows on record (msemen then shows 2.2)
+expect.not_contains = ["2.7|2.73|2.8"]
 expect.agents = ["data-agent"]
 
 [[case]]
