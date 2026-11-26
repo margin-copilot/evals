@@ -1,0 +1,29 @@
+name: gate
+on:
+  workflow_call:
+    inputs:
+      service:
+        description: orchestrator or data-agent
+        required: true
+        type: string
+      sha:
+        description: full 40-hex commit of that service
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      # without `repository:` this would check out the caller's repo
+      - uses: actions/checkout@v7
+        with:
+          repository: margin-copilot/evals
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          version: "0.13.6"
+      - run: scripts/gate.sh "$SERVICE" "$SHA"
+        env:
+          SERVICE: ${{ inputs.service }}
+          SHA: ${{ inputs.sha }}

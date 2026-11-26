@@ -32,6 +32,16 @@ uv run pytest -q -rxX
 
 Why it works this way, and the response fields the cases expect: D-029 in the [docs repo](https://github.com/margin-copilot/docs/blob/main/decisions.md).
 
+## The gate (called by other repos)
+
+`.github/workflows/gate.yml` is a reusable workflow (`workflow_call`, inputs `service` and `sha`). A service repo calls it on a push to main, before it deploys: `margin-copilot/evals/.github/workflows/gate.yml@main`. It runs `scripts/gate.sh <service> <sha>`: `uv sync --locked`, installs that service at that commit over the locked one, then runs the CI suite above (`uv run --no-sync pytest -q -rxX`). A failing case blocks the deploy.
+
+Only `orchestrator` and `data-agent` are accepted, and the sha must be 40 hex characters; anything else exits 2 before anything is installed. The suite installs only those two services, and uses fakes for policy-agent, action-agent and proposals-api, so a commit of those three would be tested against nothing.
+
+```bash
+scripts/gate.sh orchestrator <40-hex sha>
+```
+
 ## The live suite and checks (run on a laptop)
 
 Cases with `suite = "live"` need the real model and data, so CI skips them (D-033). They run against the deployed system after an interactive browser sign-in per test user (D-019). Device code flow is blocked in new tenants.
