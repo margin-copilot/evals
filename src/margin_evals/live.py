@@ -23,6 +23,17 @@ class SignInFailed(Exception):
     pass
 
 
+def _retrying_connect(send):
+    """Calls `send()`, again after 3 s and 6 s if the TCP connection never opened. That is the only
+    failure retried: nothing was sent, so the turn can't run twice (no duplicate draft)."""
+    for pause in (3, 6):
+        try:
+            return send()
+        except (httpx.ConnectTimeout, httpx.ConnectError):
+            time.sleep(pause)
+    return send()
+
+
 def load_env(path: pathlib.Path = ENV_FILE) -> dict[str, str]:
     pairs = (line.split("=", 1) for line in path.read_text().splitlines() if "=" in line)
     return {key.strip(): value.strip() for key, value in pairs if not key.startswith("#")}
@@ -73,8 +84,10 @@ def chat(
     if trace_id is not None:
         headers["traceparent"] = traceparent(trace_id)
     try:
-        response = httpx.post(
-            f"{env['ORCHESTRATOR_URL']}/chat", json=payload, headers=headers, timeout=TIMEOUT
+        response = _retrying_connect(
+            lambda: httpx.post(
+                f"{env['ORCHESTRATOR_URL']}/chat", json=payload, headers=headers, timeout=TIMEOUT
+            )
         )
     except httpx.TransportError as error:  # judged as a failed case; the run goes on
         return 0, {"error": f"no response: {type(error).__name__}"}
@@ -120,8 +133,9 @@ def chat_stream(
         headers["traceparent"] = traceparent(trace_id)
     events: list[tuple[str, float]] = []
     start = time.monotonic()
-    try:
-        url = f"{env['ORCHESTRATOR_URL']}/chat"
+    url = f"{env['ORCHESTRATOR_URL']}/chat"
+
+    def attempt():
         with httpx.stream("POST", url, json=payload, headers=headers, timeout=TIMEOUT) as response:
             status, body = response.status_code, None
             if not response.headers.get("content-type", "").startswith("text/event-stream"):
@@ -138,6 +152,9 @@ def chat_stream(
                     if event == "error":
                         status = body.get("status", status)
             return status, body, events
+
+    try:
+        return _retrying_connect(attempt)
     except httpx.TransportError as error:  # judged as a failed case; the run goes on
         return 0, {"error": f"no response: {type(error).__name__}"}, events
 

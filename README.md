@@ -58,6 +58,8 @@ uv run live/run_cases.py --stream         # the same cases on the streamed path 
 
 **Time and cost per question** (D-043): each case sends its own trace ID (`traceparent`); after the pass/fail line, `run_cases.py` reads those traces from the Log Analytics workspace with your `az login` and prints per question the total time, the router, each agent and the composer, model calls, tokens and cost, then the average and the total. Settings in `.env`: `MONITOR_WORKSPACE_ID` (the infra repo's `scripts/spike-env.sh` writes it) and `MODEL_INPUT_USD_PER_MTOK`, `MODEL_CACHED_INPUT_USD_PER_MTOK`, `MODEL_OUTPUT_USD_PER_MTOK` (the meters Cost Management bills). Ingestion takes a few minutes; a report that can't be read is printed as such and never fails a run.
 
+The live runner retries a request twice (after 3 s and 6 s) only when the TCP connection never opened (`ConnectTimeout`, `ConnectError`). Nothing was sent then, so no turn runs twice and no answer is judged that wasn't given; a read timeout or any error after sending is never retried.
+
 `identity_hop.py` (milestone 1) checks four things:
 - A signed-in test user's question crosses the orchestrator → data-agent A2A hop.
 - A token from an app that isn't on the allow-list gets 403.

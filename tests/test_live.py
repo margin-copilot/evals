@@ -103,3 +103,51 @@ def test_chat_stream_reports_an_error_events_status(monkeypatch):
     status, reply, events = live.chat_stream({"ORCHESTRATOR_URL": "http://o"}, "t", "q", "a" * 32)
     assert (status, reply) == (404, {"error": "conversation not found", "status": 404})
     assert [event for event, _ in events] == ["step", "error"]
+
+
+def _wire(monkeypatch, failures):
+    """Both entry points over a MockTransport that raises each of `failures` in turn, then
+    answers; returns the list of attempts and the sleeps."""
+    attempts, sleeps = [], []
+
+    def handler(request):
+        attempts.append(request)
+        if len(attempts) <= len(failures):
+            raise failures[len(attempts) - 1]("boom", request=request)
+        return httpx.Response(200, json={"answer": "ok"})
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    monkeypatch.setattr(live.httpx, "post", lambda url, **kw: client.post(url, **kw))
+    monkeypatch.setattr(live.httpx, "stream", lambda m, url, **kw: client.stream(m, url, **kw))
+    monkeypatch.setattr(live.time, "sleep", sleeps.append)
+    return attempts, sleeps
+
+
+ORCH = {"ORCHESTRATOR_URL": "http://o"}
+
+
+def test_a_request_that_never_connected_is_tried_again(monkeypatch):
+    attempts, sleeps = _wire(monkeypatch, [httpx.ConnectTimeout])
+    assert live.chat(ORCH, "t", "q") == (200, {"answer": "ok"})
+    assert len(attempts) == 2 and sleeps == [3]
+    attempts.clear()
+    status, reply, _ = live.chat_stream(ORCH, "t", "q")
+    assert (status, reply) == (200, {"answer": "ok"}) and len(attempts) == 2
+
+
+def test_a_request_that_never_connects_fails_after_three_attempts(monkeypatch):
+    attempts, sleeps = _wire(monkeypatch, [httpx.ConnectError] * 9)
+    assert live.chat(ORCH, "t", "q") == (0, {"error": "no response: ConnectError"})
+    assert len(attempts) == 3 and sleeps == [3, 6]
+    attempts.clear()
+    assert live.chat_stream(ORCH, "t", "q")[:2] == (0, {"error": "no response: ConnectError"})
+    assert len(attempts) == 3
+
+
+def test_a_request_already_sent_is_never_tried_again(monkeypatch):
+    attempts, sleeps = _wire(monkeypatch, [httpx.ReadTimeout] * 9)
+    assert live.chat(ORCH, "t", "q") == (0, {"error": "no response: ReadTimeout"})
+    assert len(attempts) == 1 and sleeps == []
+    attempts.clear()
+    assert live.chat_stream(ORCH, "t", "q")[:2] == (0, {"error": "no response: ReadTimeout"})
+    assert len(attempts) == 1
