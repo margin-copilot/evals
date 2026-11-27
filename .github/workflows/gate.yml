@@ -17,9 +17,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # without `repository:` this would check out the caller's repo
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
         with:
-          repository: margin-copilot/evals
+          repository: ${{ github.repository_owner }}/evals
       - uses: astral-sh/setup-uv@v10.3.3
         with:
           version: "0.13.6"
